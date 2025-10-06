@@ -82,12 +82,18 @@ async def new_puzzle(channel):
 @bot.command()
 async def start(ctx):
     """Start the anagram quiz in this channel."""
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.send("⚠️ This bot only runs in the designated channel.")
+        return
     await new_puzzle(ctx.channel)
     await ctx.send("Started the quiz here! Reply with your answers.")
 
 @bot.command()
 async def stop(ctx):
     """Stop the quiz in this channel."""
+    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+        await ctx.send("⚠️ This bot only runs in the designated channel.")
+        return
     if ctx.channel.id in current:
         del current[ctx.channel.id]
         await ctx.send("Quiz stopped in this channel.")
@@ -97,6 +103,10 @@ async def stop(ctx):
 @bot.event
 async def on_message(message):
     if message.author.bot:
+        return
+
+    # Only allow the bot to respond in the allowed channel
+    if message.channel.id != ALLOWED_CHANNEL_ID:
         return
 
     cid = message.channel.id
@@ -118,10 +128,12 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+
 if __name__ == "__main__":
     token = os.getenv("DISCORD_BOT_TOKEN")
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
