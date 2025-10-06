@@ -5,6 +5,7 @@ os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 
 # === Configuration ===
+ALLOWED_CHANNEL_ID = 1424500871365918761
 intents = discord.Intents.default()
 intents.message_content = True  # make sure it's enabled in the Developer Portal
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -122,4 +123,5 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
