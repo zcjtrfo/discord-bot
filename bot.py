@@ -97,14 +97,24 @@ async def stop(ctx):
 async def on_message(message):
     if message.author.bot:
         return
+
     cid = message.channel.id
     if cid in current:
         guess = message.content.strip().lower()
+
+        # User gives up
+        if guess in ["give up", "giveup"]:
+            answer = current[cid]
+            await message.channel.send(f"💡 The answer is **{answer}**.")
+            await new_puzzle(message.channel)
+            return
+
+        # User guesses correctly
         if guess == current[cid].lower():
-            # pick random congrats message
             congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
             await message.channel.send(congrats)
             await new_puzzle(message.channel)
+
     await bot.process_commands(message)
 
 if __name__ == "__main__":
@@ -112,3 +122,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
