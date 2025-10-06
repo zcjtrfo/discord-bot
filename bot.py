@@ -11,7 +11,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # === Load words ===
 WORDS = []
-with open("words.txt", encoding="utf-8") as f:
+with open("conundrums.txt", encoding="utf-8") as f:
     for line in f:
         w = line.strip()
         if w:
@@ -37,7 +37,7 @@ async def new_puzzle(channel):
     word = random.choice(WORDS)
     scrambled = scramble(word)
     current[channel.id] = word
-    await channel.send(f"🔀 Unscramble this: **{scrambled}**")
+    await channel.send(f"Please reveal today's Countdown Conundrum: **{scrambled}**")
 
 @bot.command()
 async def start(ctx):
@@ -63,7 +63,7 @@ async def on_message(message):
         guess = message.content.strip().lower()
         if guess == current[cid].lower():
             await message.channel.send(
-                f"🎉 Correct, {message.author.mention}! The word was **{current[cid]}**."
+                f"🎉 Correct, {message.author.mention}!"
             )
             await new_puzzle(message.channel)
     await bot.process_commands(message)
@@ -73,3 +73,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
