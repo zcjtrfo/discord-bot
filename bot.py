@@ -144,15 +144,15 @@ async def leaderboard(ctx):
         await ctx.send("No scores yet!")
         return
 
-    top = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:25]
+    # Sort top 25 by score
+    top = sorted(scores.items(), key=lambda x: x[1]["score"], reverse=True)[:25]
+
     msg = "**🏆 Countdown Conundrum Leaderboard**\n"
-    for idx, (user_id, score) in enumerate(top, 1):
-        member = ctx.guild.get_member(int(user_id))
-        if member:
-            name = member.display_name  # This gives nickname if set, otherwise username
-        else:
-            name = f"Unknown User"
+    for idx, (user_id, info) in enumerate(top, 1):
+        name = info["name"]
+        score = info["score"]
         msg += f"{idx}. {name}: {score}\n"
+
     await ctx.send(msg)
 
 # === Message handling ===
@@ -178,10 +178,15 @@ async def on_message(message):
             if guess == current[cid].lower():
                 # Update leaderboard
                 user_id = str(message.author.id)
-                scores[user_id] = scores.get(user_id, 0) + 1
+                scores[user_id] = {
+                    "name": message.author.display_name,  # nickname if set
+                    "score": scores.get(user_id, {}).get("score", 0) + 1
+                }
+                # Save to JSON
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-
+                
+                # Congratulate user
                 congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
                 await message.channel.send(congrats)
                 await new_puzzle(message.channel)
@@ -195,6 +200,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
