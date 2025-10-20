@@ -48,8 +48,8 @@ async def maxes(ctx, *, selection: str):
     Usage: !maxes <letters>
     """
     import requests
-    import xml.etree.ElementTree as ET
     import urllib.parse
+    import json
 
     selection = selection.strip().upper()
     if not selection.isalpha() or len(selection) > 12:
@@ -63,15 +63,8 @@ async def maxes(ctx, *, selection: str):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # Clean and check text
-        text = response.text.strip()
-        if not text.startswith("<"):
-            raise ValueError(f"Unexpected response start: {text[:100]}")
-
-        # Parse XML safely
-        root = ET.fromstring(text)
-        words = [el.text for el in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string") if el.text]
-
+        # Parse JSON array
+        words = json.loads(response.text)
         if not words:
             await ctx.send(f"⚠️ No words found for {selection}.")
             return
@@ -82,7 +75,8 @@ async def maxes(ctx, *, selection: str):
         await ctx.send(f"Maxes from **{selection}**: *{', '.join(sorted(max_words))}*")
 
     except Exception as e:
-        await ctx.send(f"⚠️ Could not parse API response — `{e}`")
+        await ctx.send(f"⚠️ Could not process request — `{e}`")
+
 
 # === Load words ===
 WORDS = []
@@ -253,6 +247,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
