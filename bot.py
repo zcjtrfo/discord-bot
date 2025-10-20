@@ -72,10 +72,11 @@ async def maxes(ctx, *, selection: str):
         max_len = max(len(w) for w in words)
         max_words = [w for w in words if len(w) == max_len]
 
-        await ctx.send(f"Maxes from **{selection}**: *{', '.join(sorted(max_words))}*")
+        await ctx.send(f":arrow_up: Maxes from *{selection}*: **{', '.join(sorted(max_words))}**")
 
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
+
 
 
 # === Load words ===
@@ -247,6 +248,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
