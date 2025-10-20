@@ -113,7 +113,8 @@ async def new_puzzle(channel):
     current[channel.id] = word
     scramble_emoji = regional_indicator(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
-    await channel.send(msg_template.format(scrambled=scramble_emoji))
+    formatted_message = msg_template.format(scrambled=f"\n{scramble_emoji}")
+    await channel.send(formatted_message)
 
 # === Commands ===
 @bot.command()
@@ -154,6 +155,12 @@ async def leaderboard(ctx):
         msg += f"{idx}. {name}: {score}\n"
 
     await ctx.send(msg)
+
+@bot.command(name="dump_scores")
+async def dump_scores(ctx):
+    with open(SCORES_FILE, "r") as f:
+        data = f.read()
+    await ctx.send(f"```json\n{data}\n```")
 
 # === Message handling ===
 @bot.event
@@ -200,6 +207,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
