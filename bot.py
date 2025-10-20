@@ -3,6 +3,8 @@ import random
 import discord
 import json
 import requests
+import re
+import xml.etree.ElementTree as ET
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 
@@ -37,6 +39,46 @@ async def check_word(ctx, *, term: str):
             await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
+
+# === Maxes from selection ===
+@bot.command(name="maxes")
+async def maxes(ctx, *, selection: str):
+    """
+    Finds the longest valid words (maxes) from a given selection of letters.
+    Usage: !maxes <letters>
+    """
+    selection = selection.strip().lower()
+
+    # ✅ Validate input: only letters, max 12
+    if not re.fullmatch(r"[a-z]{1,12}", selection):
+        await ctx.send("⚠️ Selection must contain 12 letters or fewer (A–Z only).")
+        return
+
+    try:
+        user_identifier = ctx.author.name
+        url = f"https://focaltools.azurewebsites.net/api/getwords/{selection}?ip={user_identifier}"
+
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+
+        # Parse XML response
+        root = ET.fromstring(response.text)
+        words = [w.text for w in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string") if w.text]
+
+        if not words:
+            await ctx.send(f"⚠️ No words found for **{selection.upper()}**.")
+            return
+
+        # Find the longest words
+        max_len = max(len(w) for w in words)
+        max_words = [w for w in words if len(w) == max_len]
+
+        # Format and send response
+        formatted_words = ", ".join(sorted(max_words))
+        await ctx.send(f"🧩 Maxes from **{selection.upper()}**: *{formatted_words}*")
+
+    except Exception as e:
+        await ctx.send(f"❌ Error processing request: `{e}`")
 
 # === Load words ===
 WORDS = []
@@ -207,6 +249,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
