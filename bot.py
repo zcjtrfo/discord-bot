@@ -137,7 +137,7 @@ async def stop(ctx):
     else:
         await ctx.send("No active quiz here.")
 
-@bot.command(name="leaderboard")
+@bot.command(name="points")
 async def leaderboard(ctx):
     """Show top solvers."""
     if not scores:
@@ -149,9 +149,10 @@ async def leaderboard(ctx):
     for idx, (user_id, score) in enumerate(top, 1):
         member = ctx.guild.get_member(int(user_id))
         if member:
-            msg += f"{idx}. {member.display_name}: {score}\n"
+            name = member.display_name  # This gives nickname if set, otherwise username
         else:
-            msg += f"{idx}. Unknown User ({user_id}): {score}\n"
+            name = f"Unknown User"
+        msg += f"{idx}. {name}: {score}\n"
     await ctx.send(msg)
 
 # === Message handling ===
@@ -194,5 +195,6 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
