@@ -1,14 +1,14 @@
 import os
 import random
 import discord
-import requests  # 👈 new import
+import json
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 
 # === Configuration ===
 ALLOWED_CHANNEL_ID = 1424500871365918761
 intents = discord.Intents.default()
-intents.message_content = True  # make sure it's enabled in the Developer Portal
+intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # === Load words ===
@@ -21,7 +21,7 @@ with open("conundrums.txt", encoding="utf-8") as f:
 
 def scramble(word):
     letters = list(word)
-    for _ in range(10):  # try to ensure shuffle differs from original
+    for _ in range(10):
         random.shuffle(letters)
         s = "".join(letters)
         if s.lower() != word.lower():
@@ -29,13 +29,12 @@ def scramble(word):
     return "".join(letters)
 
 def regional_indicator(word):
-    """Convert letters in word to Discord regional_indicator emojis"""
     emoji_letters = []
     for ch in word.lower():
         if 'a' <= ch <= 'z':
             emoji_letters.append(f":regional_indicator_{ch}:")
         else:
-            emoji_letters.append(ch)  # leave punctuation/numbers as-is
+            emoji_letters.append(ch)
     return " ".join(emoji_letters)
 
 # === Random message pools ===
@@ -65,9 +64,18 @@ SCRAMBLE_MESSAGES = [
     "Quiet please, for the Countdown Conundrum: **{scrambled}**",
 ]
 
-# active puzzles per channel/thread
+# === Active puzzles per channel/thread ===
 current = {}
 
+# === Leaderboard storage ===
+SCORES_FILE = "scores.json"
+try:
+    with open(SCORES_FILE, "r", encoding="utf-8") as f:
+        scores = json.load(f)
+except FileNotFoundError:
+    scores = {}
+
+# === Bot events ===
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} (id: {bot.user.id})")
@@ -80,6 +88,7 @@ async def new_puzzle(channel):
     msg_template = random.choice(SCRAMBLE_MESSAGES)
     await channel.send(msg_template.format(scrambled=scramble_emoji))
 
+# === Commands ===
 @bot.command()
 async def start(ctx):
     """Start the anagram quiz in this channel."""
@@ -101,35 +110,30 @@ async def stop(ctx):
     else:
         await ctx.send("No active quiz here.")
 
-# === Word validity check ===
-@bot.command(name="check")
-async def check_word(ctx, *, term: str):
-    """
-    Checks whether a word is valid using the FocalTools API.
-    Usage: !check <word>
-    """
-    try:
-        url = f"https://focaltools.azurewebsites.net/api/checkword/{term}?ip=c4c"
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.text.strip().lower()
+@bot.command(name="leaderboard")
+async def leaderboard(ctx):
+    """Show top solvers."""
+    if not scores:
+        await ctx.send("No scores yet!")
+        return
 
-        # Parse the XML boolean response
-        if "true" in data:
-            await ctx.send(f"✅ **{term.upper()}** is **VALID**")
-        elif "false" in data:
-            await ctx.send(f"❌ **{term.upper()}** is **INVALID**")
+    top = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:25]
+    msg = "**🏆 Countdown Conundrum Leaderboard**\n"
+    for idx, (user_id, score) in enumerate(top, 1):
+        member = ctx.guild.get_member(int(user_id))
+        if member:
+            msg += f"{idx}. {member.display_name}: {score}\n"
         else:
-            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Error calling the API: `{e}`")
+            msg += f"{idx}. Unknown User ({user_id}): {score}\n"
+    await ctx.send(msg)
 
+# === Message handling ===
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    # Only allow the conundrum bot logic in the designated channel
+    # Only allow conundrum logic in the designated channel
     if message.channel.id == ALLOWED_CHANNEL_ID:
         cid = message.channel.id
         if cid in current:
@@ -144,17 +148,22 @@ async def on_message(message):
 
             # User guesses correctly
             if guess == current[cid].lower():
+                # Update leaderboard
+                user_id = str(message.author.id)
+                scores[user_id] = scores.get(user_id, 0) + 1
+                with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(scores, f, indent=2)
+
                 congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
                 await message.channel.send(congrats)
                 await new_puzzle(message.channel)
 
-    # Let command processing continue (for !check etc.)
+    # Always allow command processing
     await bot.process_commands(message)
 
-
+# === Run bot ===
 if __name__ == "__main__":
     token = os.getenv("DISCORD_BOT_TOKEN")
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
-
