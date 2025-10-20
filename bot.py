@@ -11,6 +11,32 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# === Word validity check ===
+@bot.command(name="check")
+async def check_word(ctx, *, term: str):
+    """
+    Checks whether a word is valid using the FocalTools API.
+    Usage: !check <word>
+    """
+    try:
+        # Use the Discord username as the IP value
+        user_identifier = ctx.author.name
+        url = f"https://focaltools.azurewebsites.net/api/checkword/{term}?ip={user_identifier}"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.text.strip().lower()
+
+        # Parse the XML boolean response
+        if "true" in data:
+            await ctx.send(f"✅ **{term.upper()}** is **VALID**")
+        elif "false" in data:
+            await ctx.send(f"❌ **{term.upper()}** is **INVALID**")
+        else:
+            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ Error calling the API: `{e}`")
+
 # === Load words ===
 WORDS = []
 with open("conundrums.txt", encoding="utf-8") as f:
@@ -167,3 +193,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
