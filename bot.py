@@ -47,52 +47,40 @@ async def maxes(ctx, *, selection: str):
     Finds the longest valid words (maxes) from a given selection of letters.
     Usage: !maxes <letters>
     """
-    selection = selection.strip().lower()
+    selection = selection.strip().upper()
 
-    # ✅ Validate input: only letters, max 12
-    if not re.fullmatch(r"[a-z]{1,12}", selection):
+    # ✅ Validate input
+    if not re.fullmatch(r"[A-Z]{1,12}", selection):
         await ctx.send("⚠️ Selection must contain 12 letters or fewer (A–Z only).")
         return
 
-    try:
-        user_identifier = ctx.author.name
-        url = f"https://focaltools.azurewebsites.net/api/getwords/{selection}?ip={user_identifier}"
+    user_identifier = ctx.author.name
+    url = f"https://focaltools.azurewebsites.net/api/getwords/{selection}?ip={user_identifier}"
 
+    try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # 🧩 Check content before parsing
-        if not response.text.strip().startswith("<"):
-            await ctx.send(f"⚠️ Unexpected API response for **{selection.upper()}**.")
-            return
-
-        # Parse XML safely
+        # 🧩 Parse XML
         root = ET.fromstring(response.text)
-        words = [
-            w.text
-            for w in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string")
-            if w.text
-        ]
+        ns = {"a": "http://schemas.microsoft.com/2003/10/Serialization/Arrays"}
+        words = [el.text for el in root.findall("a:string", ns) if el.text]
 
         if not words:
-            await ctx.send(f"⚠️ No results found for **{selection.upper()}**.")
+            await ctx.send(f"⚠️ No words found for **{selection}**.")
             return
 
-        # Find the longest words
+        # 🏆 Get the longest words
         max_len = max(len(w) for w in words)
         max_words = [w for w in words if len(w) == max_len]
+        formatted = ", ".join(sorted(max_words))
 
-        # Format nicely
-        formatted_words = ", ".join(sorted(max_words))
-        await ctx.send(f"🧩 Maxes from **{selection.upper()}**: *{formatted_words}*")
+        await ctx.send(f"🧩 Maxes from **{selection}**: *{formatted}*")
 
+    except ET.ParseError:
+        await ctx.send("⚠️ Could not parse API response — the server may be busy or returned invalid XML.")
     except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Network/API error: `{e}`")
-
-    except ET.ParseError as e:
-        snippet = response.text[:200].replace("`", "'")  # prevent markdown break
-        await ctx.send(f"⚠️ Could not parse API response. Server returned:\n```{snippet}```")
-
+        await ctx.send(f"❌ API request failed: `{e}`")
     except Exception as e:
         await ctx.send(f"❌ Unexpected error: `{e}`")
 
@@ -265,6 +253,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
