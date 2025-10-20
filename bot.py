@@ -44,45 +44,45 @@ async def check_word(ctx, *, term: str):
 @bot.command(name="maxes")
 async def maxes(ctx, *, selection: str):
     """
-    Finds the longest valid words (maxes) from a given selection of letters.
+    Finds the longest possible words from the given selection using the FocalTools API.
     Usage: !maxes <letters>
     """
-    selection = selection.strip().upper()
+    import requests
+    import xml.etree.ElementTree as ET
+    import urllib.parse
 
-    # ✅ Validate input
-    if not re.fullmatch(r"[A-Z]{1,12}", selection):
+    selection = selection.strip().upper()
+    if not selection.isalpha() or len(selection) > 12:
         await ctx.send("⚠️ Selection must contain 12 letters or fewer (A–Z only).")
         return
 
-    user_identifier = ctx.author.name
+    user_identifier = urllib.parse.quote(ctx.author.name)
     url = f"https://focaltools.azurewebsites.net/api/getwords/{selection}?ip={user_identifier}"
 
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # 🧩 Parse XML
-        root = ET.fromstring(response.text)
-        ns = {"a": "http://schemas.microsoft.com/2003/10/Serialization/Arrays"}
-        words = [el.text for el in root.findall("a:string", ns) if el.text]
+        # Clean and check text
+        text = response.text.strip()
+        if not text.startswith("<"):
+            raise ValueError(f"Unexpected response start: {text[:100]}")
+
+        # Parse XML safely
+        root = ET.fromstring(text)
+        words = [el.text for el in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string") if el.text]
 
         if not words:
-            await ctx.send(f"⚠️ No words found for **{selection}**.")
+            await ctx.send(f"⚠️ No words found for {selection}.")
             return
 
-        # 🏆 Get the longest words
         max_len = max(len(w) for w in words)
         max_words = [w for w in words if len(w) == max_len]
-        formatted = ", ".join(sorted(max_words))
 
-        await ctx.send(f"🧩 Maxes from **{selection}**: *{formatted}*")
+        await ctx.send(f"Maxes from **{selection}**: *{', '.join(sorted(max_words))}*")
 
-    except ET.ParseError:
-        await ctx.send("⚠️ Could not parse API response — the server may be busy or returned invalid XML.")
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ API request failed: `{e}`")
     except Exception as e:
-        await ctx.send(f"❌ Unexpected error: `{e}`")
+        await ctx.send(f"⚠️ Could not parse API response — `{e}`")
 
 # === Load words ===
 WORDS = []
@@ -253,6 +253,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
