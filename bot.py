@@ -108,18 +108,19 @@ async def check_word(ctx, *, term: str):
     Checks whether a word is valid using the FocalTools API.
     Usage: !check <word>
     """
-    await ctx.send(f"🔍 Checking validity for: **{term}** ...")
-    
     try:
         url = f"https://focaltools.azurewebsites.net/api/checkword/{term}?ip=c4c"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        data = response.text.strip()
+        data = response.text.strip().lower()
 
-        if data:
-            await ctx.send(f"🧩 Result for **{term}**:\n```{data}```")
+        # Parse the XML boolean response
+        if "true" in data:
+            await ctx.send(f"✅ **{term.upper()}** is **VALID**")
+        elif "false" in data:
+            await ctx.send(f"❌ **{term.upper()}** is **INVALID**")
         else:
-            await ctx.send("⚠️ No data returned from the API.")
+            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
@@ -156,3 +157,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
