@@ -1,7 +1,6 @@
 import os
 import random
 import discord
-import requests  # 👈 new import
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 
@@ -101,54 +100,32 @@ async def stop(ctx):
     else:
         await ctx.send("No active quiz here.")
 
-# === New API command ===
-@bot.command(name="check")
-async def check_relations(ctx, *, term: str):
-    """
-    Calls the FocalTools 'relations' API and returns the result.
-    Usage: !check relations
-    """
-    # Allow usage in all channels
-    await ctx.send(f"🔍 Checking relations for: **{term}** ...")
-    
-    try:
-        url = f"https://focaltools.azurewebsites.net/api/checkword/relations?ip={term}"
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.text.strip()
-        
-        if data:
-            await ctx.send(f"🧩 Result for **{term}**:\n```{data}```")
-        else:
-            await ctx.send("⚠️ No data returned from the API.")
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Error calling the API: `{e}`")
-
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    # Only allow the conundrum bot logic in the designated channel
-    if message.channel.id == ALLOWED_CHANNEL_ID:
-        cid = message.channel.id
-        if cid in current:
-            guess = message.content.strip().lower()
+    # Only allow the bot to respond in the allowed channel
+    if message.channel.id != ALLOWED_CHANNEL_ID:
+        return
 
-            # User gives up
-            if guess in ["give up", "giveup"]:
-                answer = current[cid]
-                await message.channel.send(f"💡 The answer is **{answer}**.")
-                await new_puzzle(message.channel)
-                return
+    cid = message.channel.id
+    if cid in current:
+        guess = message.content.strip().lower()
 
-            # User guesses correctly
-            if guess == current[cid].lower():
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
-                await message.channel.send(congrats)
-                await new_puzzle(message.channel)
+        # User gives up
+        if guess in ["give up", "giveup"]:
+            answer = current[cid]
+            await message.channel.send(f"💡 The answer is **{answer}**.")
+            await new_puzzle(message.channel)
+            return
 
-    # Let command processing continue (for !check etc.)
+        # User guesses correctly
+        if guess == current[cid].lower():
+            congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
+            await message.channel.send(congrats)
+            await new_puzzle(message.channel)
+
     await bot.process_commands(message)
 
 
@@ -157,3 +134,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
+
+
+
