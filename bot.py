@@ -61,24 +61,40 @@ async def maxes(ctx, *, selection: str):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # Parse XML response
+        # 🧩 Check content before parsing
+        if not response.text.strip().startswith("<"):
+            await ctx.send(f"⚠️ Unexpected API response for **{selection.upper()}**.")
+            return
+
+        # Parse XML safely
         root = ET.fromstring(response.text)
-        words = [w.text for w in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string") if w.text]
+        words = [
+            w.text
+            for w in root.findall(".//{http://schemas.microsoft.com/2003/10/Serialization/Arrays}string")
+            if w.text
+        ]
 
         if not words:
-            await ctx.send(f"⚠️ No words found for **{selection.upper()}**.")
+            await ctx.send(f"⚠️ No results found for **{selection.upper()}**.")
             return
 
         # Find the longest words
         max_len = max(len(w) for w in words)
         max_words = [w for w in words if len(w) == max_len]
 
-        # Format and send response
+        # Format nicely
         formatted_words = ", ".join(sorted(max_words))
         await ctx.send(f"🧩 Maxes from **{selection.upper()}**: *{formatted_words}*")
 
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ Network/API error: `{e}`")
+
+    except ET.ParseError as e:
+        snippet = response.text[:200].replace("`", "'")  # prevent markdown break
+        await ctx.send(f"⚠️ Could not parse API response. Server returned:\n```{snippet}```")
+
     except Exception as e:
-        await ctx.send(f"❌ Error processing request: `{e}`")
+        await ctx.send(f"❌ Unexpected error: `{e}`")
 
 # === Load words ===
 WORDS = []
@@ -249,6 +265,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
