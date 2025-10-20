@@ -2,6 +2,7 @@ import os
 import random
 import discord
 import json
+import requests
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 
@@ -193,4 +194,5 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
