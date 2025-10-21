@@ -258,12 +258,113 @@ async def on_message(message):
     # Always allow command processing
     await bot.process_commands(message)
 
+# === Numbers Game (numbers-bot channel only) ===
+from numbers_solver import solve_numbers  # make sure this file exists
+NUMBERS_CHANNEL_ID = 1430278725739479153  # <-- replace with your actual channel ID
+
+LARGE_NUMS = [25, 50, 75, 100]
+SMALL_NUMS = [1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]
+active_numbers_round = None
+
+async def generate_numbers_round():
+    """Generate a solvable numbers round (difference == 0)."""
+    while True:
+        L = random.randint(0, 4)
+        print(f"Generating a {L}-large numbers round...")
+
+        large = random.sample(LARGE_NUMS, L)
+        small = random.sample(SMALL_NUMS, 6 - L)
+        selection = large + small
+        target = random.randint(101, 999)
+
+        result = solve_numbers(target, selection)
+        if result["difference"] == 0:
+            return {
+                "L": L,
+                "selection": selection,
+                "target": target,
+                "solution": result["results"][0],  # (result, expr)
+            }
+
+@bot.command(name="start_numbers")
+@commands.has_permissions(manage_messages=True)
+async def start_numbers(ctx):
+    """Starts a Countdown Numbers round (moderators only)."""
+    global active_numbers_round
+
+    if ctx.channel.id != NUMBERS_CHANNEL_ID:
+        await ctx.send("⚠️ This command can only be used in the numbers-bot channel.")
+        return
+
+    active_numbers_round = await generate_numbers_round()
+    selection_str = ", ".join(str(n) for n in active_numbers_round["selection"])
+
+    await ctx.send(
+        f"🎯 **Countdown Numbers Round**\n"
+        f"Large numbers: {active_numbers_round['L']}\n"
+        f"Selection: `{selection_str}`\n"
+        f"Target: **{active_numbers_round['target']}**\n\n"
+        f"Type `next` for another round!"
+    )
+
+# === Extend on_message for 'next' command ===
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # === Conundrum channel handling ===
+    if message.channel.id == ALLOWED_CHANNEL_ID:
+        cid = message.channel.id
+        if cid in current:
+            guess = message.content.strip().lower()
+
+            # Give up
+            if guess in ["give up", "giveup"]:
+                answer = current[cid]
+                await message.channel.send(f"💡 The answer is **{answer}**.")
+                await new_puzzle(message.channel)
+                return
+
+            # Correct guess
+            if guess == current[cid].lower():
+                user_id = str(message.author.id)
+                scores[user_id] = {
+                    "name": message.author.display_name,
+                    "score": scores.get(user_id, {}).get("score", 0) + 1
+                }
+                with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(scores, f, indent=2)
+
+                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
+                await message.channel.send(congrats)
+                await new_puzzle(message.channel)
+
+    # === Numbers channel handling ===
+    elif message.channel.id == NUMBERS_CHANNEL_ID:
+        global active_numbers_round
+
+        if message.content.strip().lower() == "next":
+            active_numbers_round = await generate_numbers_round()
+            selection_str = ", ".join(str(n) for n in active_numbers_round["selection"])
+
+            await message.channel.send(
+                f"🎯 **New Numbers Round**\n"
+                f"Large numbers: {active_numbers_round['L']}\n"
+                f"Selection: `{selection_str}`\n"
+                f"Target: **{active_numbers_round['target']}**"
+            )
+
+    # === Process all other bot commands ===
+    await bot.process_commands(message)
+
 # === Run bot ===
 if __name__ == "__main__":
     token = os.getenv("DISCORD_BOT_TOKEN")
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
