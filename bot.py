@@ -40,20 +40,31 @@ async def check_word(ctx, *, term: str):
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
-# === Maxes from selection ===
 @bot.command(name="maxes")
 async def maxes(ctx, *, selection: str):
     """
     Finds the longest possible words from the given selection using the FocalTools API.
-    Usage: !maxes <letters>
+    Usage: !maxes <letters> (supports up to two '*' wildcards)
     """
     import requests
     import urllib.parse
     import json
+    import re
 
     selection = selection.strip().upper()
-    if not selection.isalpha() or len(selection) > 12:
-        await ctx.send("⚠️ Selection must contain 12 letters or fewer (A–Z only).")
+
+    # ✅ Allow A–Z and up to 2 wildcard * characters
+    if not re.fullmatch(r"[A-Z\*]+", selection):
+        await ctx.send("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
+        return
+
+    if selection.count('*') > 2:
+        await ctx.send("⚠️ You can use a maximum of two '*' wildcards.")
+        return
+
+    # ✅ Enforce total length ≤ 12 (including wildcards)
+    if len(selection) > 12:
+        await ctx.send("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
         return
 
     user_identifier = urllib.parse.quote(ctx.author.name)
@@ -66,7 +77,7 @@ async def maxes(ctx, *, selection: str):
         # Parse JSON array
         words = json.loads(response.text)
         if not words:
-            await ctx.send(f"⚠️ No words found for {selection}.")
+            await ctx.send(f"⚠️ No words found for *{selection}*.")
             return
 
         max_len = max(len(w) for w in words)
@@ -76,6 +87,7 @@ async def maxes(ctx, *, selection: str):
 
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
+
 
 
 
@@ -154,30 +166,34 @@ async def new_puzzle(channel):
     current[channel.id] = word
     scramble_emoji = regional_indicator(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
-    formatted_message = msg_template.format(scrambled=f"\n{scramble_emoji}")
+    formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
     await channel.send(formatted_message)
 
-# === Commands ===
-@bot.command()
-async def start(ctx):
-    """Start the anagram quiz in this channel."""
+# === Moderator-only Conundrum Commands ===
+@bot.command(name="start_conundrums")
+@commands.has_permissions(manage_messages=True)
+async def start_conundrums(ctx):
+    """Start the anagram quiz in this channel (moderators only)."""
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
-        await ctx.send("⚠️ This bot only runs in the designated channel.")
+        await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
         return
-    await new_puzzle(ctx.channel)
-    await ctx.send("Started the quiz here! Reply with your answers.")
 
-@bot.command()
-async def stop(ctx):
-    """Stop the quiz in this channel."""
+    await new_puzzle(ctx.channel)
+    await ctx.send("🧩 Conundrum quiz started! Reply with your answers below.")
+
+@bot.command(name="stop_conundrums")
+@commands.has_permissions(manage_messages=True)
+async def stop_conundrums(ctx):
+    """Stop the anagram quiz in this channel (moderators only)."""
     if ctx.channel.id != ALLOWED_CHANNEL_ID:
-        await ctx.send("⚠️ This bot only runs in the designated channel.")
+        await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
         return
+
     if ctx.channel.id in current:
         del current[ctx.channel.id]
-        await ctx.send("Quiz stopped in this channel.")
+        await ctx.send("🛑 Conundrum quiz stopped.")
     else:
-        await ctx.send("No active quiz here.")
+        await ctx.send("ℹ️ No active quiz is currently running here.")
 
 @bot.command(name="points")
 async def leaderboard(ctx):
@@ -248,6 +264,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
