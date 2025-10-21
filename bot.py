@@ -10,6 +10,7 @@ from discord.ext import commands
 
 # === Configuration ===
 ALLOWED_CHANNEL_ID = 1424500871365918761
+NUMBERS_CHANNEL_ID = 1430278725739479153
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -259,79 +260,95 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # === Numbers Game (numbers-bot channel only) ===
-from numbers_solver import solve_numbers  # make sure this file exists
-NUMBERS_CHANNEL_ID = 1430278725739479153  # <-- replace with your actual channel ID
-
-LARGE_NUMS = [25, 50, 75, 100]
-SMALL_NUMS = [1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]
-active_numbers_round = None
-
-async def generate_numbers_round():
-    """Generate a solvable numbers round (difference == 0)."""
-    while True:
-        L = random.randint(0, 4)
-        print(f"Generating a {L}-large numbers round...")
-
-        large = random.sample(LARGE_NUMS, L)
-        small = random.sample(SMALL_NUMS, 6 - L)
-        selection = large + small
-        target = random.randint(101, 999)
-
-        result = solve_numbers(target, selection)
-        if result["difference"] == 0:
-            return {
-                "L": L,
-                "selection": selection,
-                "target": target,
-                "solution": result["results"][0],  # (result, expr)
-            }
-
 @bot.command(name="start_numbers")
 @commands.has_permissions(manage_messages=True)
 async def start_numbers(ctx):
-    """Starts a Countdown Numbers round (moderators only)."""
-    global active_numbers_round
-
+    """Start a Countdown Numbers round (moderators only)."""
     if ctx.channel.id != NUMBERS_CHANNEL_ID:
-        await ctx.send("⚠️ This command can only be used in the numbers-bot channel.")
+        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
         return
 
-    active_numbers_round = await generate_numbers_round()
-    selection_str = ", ".join(str(n) for n in active_numbers_round["selection"])
+    await new_numbers_round(ctx.channel)
 
-    await ctx.send(
-        f"🎯 **Countdown Numbers Round**\n"
-        f"Large numbers: {active_numbers_round['L']}\n"
-        f"Selection: `{selection_str}`\n"
-        f"Target: **{active_numbers_round['target']}**\n\n"
-        f"Type `next` for another round!"
-    )
 
-# === Extend on_message for 'next' command ===
+async def new_numbers_round(channel):
+    """Generate and post a random solvable numbers puzzle."""
+    import random
+
+    while True:
+        L = random.randint(0, 4)
+        larges = random.sample([25, 50, 75, 100], L)
+        smalls = random.sample(
+            [1, 1, 2, 2, 3, 3, 4, 4, 5, 5,
+             6, 6, 7, 7, 8, 8, 9, 9, 10, 10],
+            6 - L
+        )
+        selection = larges + smalls
+        target = random.randint(101, 999)
+
+        solutions = solve_numbers(target, selection)
+        if solutions:  # found a solvable one
+            current_numbers[channel.id] = {
+                "selection": selection,
+                "target": target,
+                "solution": solutions[0],
+            }
+            await channel.send(
+                f"🎯 **Countdown Numbers Round!**\n"
+                f"Selection: **{', '.join(map(str, selection))}**\n"
+                f"Target: **{target}**"
+            )
+            break
+
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    # === Conundrum channel handling ===
+    # === Handle Numbers Channel ===
+    if message.channel.id == NUMBERS_CHANNEL_ID:
+        cid = message.channel.id
+        if cid in current_numbers:
+            guess = message.content.strip()
+
+            # User gives up
+            if guess.lower() in ["give up", "giveup"]:
+                sol = current_numbers[cid]["solution"]
+                await message.channel.send(f"💡 A possible solution was:\n```{sol}```")
+                await new_numbers_round(message.channel)
+                return
+
+            # User attempts a guess
+            selection = current_numbers[cid]["selection"]
+            target = current_numbers[cid]["target"]
+
+            result = parse_numbers_solution(guess, selection)
+            if result is False:
+                return  # silently ignore invalid attempts
+
+            if result == target:
+                await message.channel.send(f"🎉 {message.author.mention} solved it correctly!\n> `{guess}` = **{target}**")
+                await new_numbers_round(message.channel)
+                return
+
+    # === Handle Conundrum Channel (existing logic) ===
     if message.channel.id == ALLOWED_CHANNEL_ID:
         cid = message.channel.id
         if cid in current:
             guess = message.content.strip().lower()
 
-            # Give up
             if guess in ["give up", "giveup"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
 
-            # Correct guess
             if guess == current[cid].lower():
                 user_id = str(message.author.id)
                 scores[user_id] = {
                     "name": message.author.display_name,
-                    "score": scores.get(user_id, {}).get("score", 0) + 1
+                    "score": scores.get(user_id, {}).get("score", 0) + 1,
                 }
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
@@ -340,22 +357,7 @@ async def on_message(message):
                 await message.channel.send(congrats)
                 await new_puzzle(message.channel)
 
-    # === Numbers channel handling ===
-    elif message.channel.id == NUMBERS_CHANNEL_ID:
-        global active_numbers_round
-
-        if message.content.strip().lower() == "next":
-            active_numbers_round = await generate_numbers_round()
-            selection_str = ", ".join(str(n) for n in active_numbers_round["selection"])
-
-            await message.channel.send(
-                f"🎯 **New Numbers Round**\n"
-                f"Large numbers: {active_numbers_round['L']}\n"
-                f"Selection: `{selection_str}`\n"
-                f"Target: **{active_numbers_round['target']}**"
-            )
-
-    # === Process all other bot commands ===
+    # Always allow commands to process
     await bot.process_commands(message)
 
 # === Run bot ===
@@ -364,6 +366,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
