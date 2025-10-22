@@ -348,7 +348,7 @@ async def on_message(message):
             # User gives up
             if guess.lower() in ["give up", "giveup"]:
                 sol = current_numbers[cid]["solution"]
-                await message.channel.send(f"💡 A possible solution was:\n```{sol}```")
+                await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
                 return
 
@@ -407,6 +407,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
