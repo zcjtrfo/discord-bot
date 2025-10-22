@@ -269,7 +269,7 @@ async def new_numbers_round(channel):
         7: ":seven:",
         8: ":eight:",
         9: ":nine:",
-        10: ":number_ten:",
+        10: ":number_10:",
         25: "<:twentyfive:1430640762655342602>",
         50: "<:fifty:1430640824244371617>",
         75: "<:seventyfive:1430640855173300325>",
@@ -407,6 +407,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
