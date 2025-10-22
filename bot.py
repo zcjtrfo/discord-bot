@@ -7,7 +7,8 @@ import re
 import xml.etree.ElementTree as ET
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
-from numbers_solver import solve_numbers, parse_numbers_solution
+from numbers_solver import solve_numbers
+from parser import parse_numbers_solution
 
 # === Configuration ===
 ALLOWED_CHANNEL_ID = 1424500871365918761
@@ -337,6 +338,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
