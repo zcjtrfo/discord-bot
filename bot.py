@@ -274,7 +274,7 @@ async def new_numbers_round(channel):
             current_numbers[channel.id] = {
                 "selection": selection,
                 "target": target,
-                "solution": solutions[0],
+                "solution": solutions["results"][0][1],
             }
             await channel.send(
                 f"🎯 **Countdown Numbers Round!**\n"
