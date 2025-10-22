@@ -91,7 +91,26 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
+@bot.command(name="selection")
+async def selection(ctx, *, letters: str):
+    """
+    Converts a string of letters (A–Z only) into regional indicator emojis,
+    surrounded by > and < for display.
+    Usage: !selection <letters>
+    Example: !selection COUNTDOWN
+    """
+    letters = letters.strip().upper()
 
+    # Validate that only A–Z are included
+    if not re.fullmatch(r"[A-Z]+", letters):
+        await ctx.send("⚠️ Please enter letters only (A–Z). Example: `!selection COUNTDOWN`")
+        return
+
+    # Build emoji string
+    emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in letters)
+
+    # Send formatted result
+    await ctx.send(f">{emoji_output}<")
 
 
 # === Load words ===
@@ -338,6 +357,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
