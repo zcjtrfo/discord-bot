@@ -255,8 +255,46 @@ async def start_numbers(ctx):
 
 
 async def new_numbers_round(channel):
-    """Generate and post a random solvable numbers puzzle."""
+    """Generate and post a random solvable numbers puzzle with emoji formatting."""
     import random
+
+    # Emoji map for all valid Countdown numbers
+    emoji_map = {
+        1: ":one:",
+        2: ":two:",
+        3: ":three:",
+        4: ":four:",
+        5: ":five:",
+        6: ":six:",
+        7: ":seven:",
+        8: ":eight:",
+        9: ":nine:",
+        10: ":ten:",
+        25: ":twentyfive:",
+        50: ":fifty:",
+        75: ":seventyfive:",
+        100: ":onehundred:",
+    }
+
+    def to_emoji(num):
+        """Convert a number to its corresponding emoji string."""
+        return emoji_map.get(num, str(num))
+
+    def target_to_emojis(target):
+        """Convert each digit of the target into emoji numbers (e.g. 527 → :five: :two: :seven:)."""
+        digit_map = {
+            "0": ":zero:",
+            "1": ":one:",
+            "2": ":two:",
+            "3": ":three:",
+            "4": ":four:",
+            "5": ":five:",
+            "6": ":six:",
+            "7": ":seven:",
+            "8": ":eight:",
+            "9": ":nine:",
+        }
+        return " ".join(digit_map[d] for d in str(target))
 
     while True:
         L = random.randint(0, 4)
@@ -270,18 +308,29 @@ async def new_numbers_round(channel):
         target = random.randint(101, 999)
 
         solutions = solve_numbers(target, selection)
-        if solutions:  # found a solvable one
+        if solutions and solutions["results"]:
             current_numbers[channel.id] = {
                 "selection": selection,
                 "target": target,
                 "solution": solutions["results"][0][1],
             }
+
+            selection_emojis = " ".join(to_emoji(n) for n in selection)
+            target_emojis = target_to_emojis(target)
+
+            # Dynamic intro text
+            if L == 0:
+                intro_text = "Your 6 small selection is:"
+            else:
+                intro_text = f"Your {L} large selection is:"
+
             await channel.send(
-                f"🎯 **Countdown Numbers Round!**\n"
-                f"Selection: **{', '.join(map(str, selection))}**\n"
-                f"Target: **{target}**"
+                f"{intro_text}\n"
+                f"{selection_emojis}\n"
+                f"Target: {target_emojis}"
             )
             break
+
 
 
 @bot.event
@@ -357,6 +406,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
