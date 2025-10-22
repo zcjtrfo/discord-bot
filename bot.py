@@ -269,7 +269,7 @@ async def new_numbers_round(channel):
         7: ":seven:",
         8: ":eight:",
         9: ":nine:",
-        10: ":ten:",
+        10: ":number_ten:",
         25: "<:twentyfive:1430640762655342602>",
         50: "<:fifty:1430640824244371617>",
         75: "<:seventyfive:1430640855173300325>",
@@ -326,8 +326,9 @@ async def new_numbers_round(channel):
 
             await channel.send(
                 f"{intro_text}\n"
-                f"[{selection_emojis}]\n"
-                f":dart: >{target_emojis}<"
+                f":dart: >{target_emojis}< :dart:\n"
+                f"|{selection_emojis}|\n"
+
             )
             break
 
@@ -406,6 +407,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
