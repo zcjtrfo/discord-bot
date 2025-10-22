@@ -1,5 +1,6 @@
 import ast
 import operator
+import re
 
 def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bool:
     """
@@ -7,10 +8,16 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
 
     Rules:
     1) Only +, -, *, / allowed.
-    2) All intermediate results must be positive integers (exact integer values).
+       Accepts these equivalents:
+         + : +, p, P
+         - : -, −
+         * : *, x, X, ×
+         / : /, ÷
+         brackets : (), {}, []
+    2) All intermediate results must be positive integers.
     3) Only numbers from the available set may be used, each at most once.
-    4) Parentheses allowed for grouping.
-    5) If invalid, return False. Otherwise return final integer result.
+    4) If invalid, return False. Otherwise return final integer result.
+    5) Ignores all spaces in the input.
     """
 
     # Allowed operations mapping
@@ -18,19 +25,40 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         ast.Add: operator.add,
         ast.Sub: operator.sub,
         ast.Mult: operator.mul,
-        ast.Div: operator.truediv,
+        ast.Div: operator.truediv
     }
 
-    def is_integer_value(x: float) -> bool:
-        """Return True if x is mathematically an integer."""
+    # Step 1: normalize all alternative math symbols and remove whitespace
+    def normalize_expression(expr: str) -> str:
+        expr = expr.lower()  # case-insensitive
+        replacements = {
+            "p": "+",
+            "+": "+",
+            "−": "-",
+            "-": "-",
+            "x": "*",
+            "×": "*",
+            "*": "*",
+            "÷": "/",
+            "/": "/",
+            "(": "(",
+            "[": "(",
+            "{": "(",
+            ")": ")",
+            "]": ")",
+            "}": ")"
+        }
+        normalized = "".join(replacements.get(ch, ch) for ch in expr)
+        normalized = re.sub(r"\s+", "", normalized)  # remove all spaces
+        return normalized
+
+    def is_integer_value(x):
         return abs(x - round(x)) < 1e-9
 
-    def is_positive_integer_value(x: float) -> bool:
-        """Return True if x is a positive integer (mathematically)."""
+    def is_positive_integer_value(x):
         return x > 0 and is_integer_value(x)
 
     def safe_eval(node):
-        """Recursively evaluate AST nodes enforcing Countdown rules."""
         if isinstance(node, ast.Expression):
             return safe_eval(node.body)
 
@@ -39,10 +67,8 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
                 raise ValueError("Invalid operator.")
             left = safe_eval(node.left)
             right = safe_eval(node.right)
-
             if isinstance(node.op, ast.Div) and right == 0:
                 raise ZeroDivisionError
-
             result = ops[type(node.op)](left, right)
             if not is_positive_integer_value(result):
                 raise ValueError("Intermediate result must be a positive integer value.")
@@ -57,7 +83,7 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
                 raise ValueError("Numbers must be positive integers.")
             return float(value)
 
-        elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # backward compat
+        elif isinstance(node, ast.Num):  # Python < 3.8
             if not is_positive_integer_value(node.n):
                 raise ValueError("Numbers must be positive integers.")
             return float(node.n)
@@ -65,24 +91,18 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         else:
             raise ValueError("Invalid expression component.")
 
-    # Normalize and extract used numbers
-    guess = guess.strip()
-    if not guess:
-        return False
+    # Step 2: normalize input
+    guess = normalize_expression(guess.strip())
 
-    # Only allow digits, operators, parentheses, and spaces
-    if not all(ch.isdigit() or ch in "+-*/() " for ch in guess):
-        return False
-
-    # Extract used numbers
+    # Step 3: extract used numbers
     used_numbers = [
-        int(n) for n in guess.replace('(', ' ').replace(')', ' ')
-        .replace('+', ' ').replace('-', ' ')
-        .replace('*', ' ').replace('/', ' ').split()
-        if n.isdigit()
+        int(n) for n in re.split(r"[+\-*/()]", guess) if n.strip().isdigit()
     ]
 
-    # Validate number usage
+    # Check number count and valid usage
+    if len(used_numbers) > len(available_numbers):
+        return False
+
     temp_numbers = available_numbers.copy()
     for n in used_numbers:
         if n in temp_numbers:
@@ -90,7 +110,7 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         else:
             return False
 
-    # Evaluate safely
+    # Step 4: parse and evaluate safely
     try:
         tree = ast.parse(guess, mode='eval')
         result = safe_eval(tree)
