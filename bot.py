@@ -147,6 +147,7 @@ SCRAMBLE_MESSAGES = [
 
 # === Active puzzles per channel/thread ===
 current = {}
+current_numbers = {}  # for the Numbers game
 
 # === Leaderboard storage ===
 SCORES_FILE = "scores.json"
@@ -220,45 +221,6 @@ async def dump_scores(ctx):
         data = f.read()
     await ctx.send(f"```json\n{data}\n```")
 
-# === Message handling ===
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    # Only allow conundrum logic in the designated channel
-    if message.channel.id == ALLOWED_CHANNEL_ID:
-        cid = message.channel.id
-        if cid in current:
-            guess = message.content.strip().lower()
-
-            # User gives up
-            if guess in ["give up", "giveup"]:
-                answer = current[cid]
-                await message.channel.send(f"💡 The answer is **{answer}**.")
-                await new_puzzle(message.channel)
-                return
-
-            # User guesses correctly
-            if guess == current[cid].lower():
-                # Update leaderboard
-                user_id = str(message.author.id)
-                scores[user_id] = {
-                    "name": message.author.display_name,  # nickname if set
-                    "score": scores.get(user_id, {}).get("score", 0) + 1
-                }
-                # Save to JSON
-                with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(scores, f, indent=2)
-                
-                # Congratulate user
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
-                await message.channel.send(congrats)
-                await new_puzzle(message.channel)
-
-    # Always allow command processing
-    await bot.process_commands(message)
-
 # === Numbers Game (numbers-bot channel only) ===
 @bot.command(name="start_numbers")
 @commands.has_permissions(manage_messages=True)
@@ -325,25 +287,30 @@ async def on_message(message):
 
             result = parse_numbers_solution(guess, selection)
             if result is False:
-                return  # silently ignore invalid attempts
+                # silently ignore invalid attempts
+                return
 
             if result == target:
-                await message.channel.send(f"🎉 {message.author.mention} solved it correctly!\n> `{guess}` = **{target}**")
+                await message.channel.send(
+                    f"🎉 {message.author.mention} solved it correctly!\n> `{guess}` = **{target}**"
+                )
                 await new_numbers_round(message.channel)
                 return
 
-    # === Handle Conundrum Channel (existing logic) ===
-    if message.channel.id == ALLOWED_CHANNEL_ID:
+    # === Handle Conundrum Channel ===
+    elif message.channel.id == ALLOWED_CHANNEL_ID:
         cid = message.channel.id
         if cid in current:
             guess = message.content.strip().lower()
 
+            # User gives up
             if guess in ["give up", "giveup"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
 
+            # User guesses correctly
             if guess == current[cid].lower():
                 user_id = str(message.author.id)
                 scores[user_id] = {
@@ -353,12 +320,15 @@ async def on_message(message):
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
 
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
+                congrats = random.choice(CONGRATS_MESSAGES).format(
+                    user=message.author.mention
+                )
                 await message.channel.send(congrats)
                 await new_puzzle(message.channel)
 
-    # Always allow commands to process
+    # Always allow other commands to process
     await bot.process_commands(message)
+
 
 # === Run bot ===
 if __name__ == "__main__":
@@ -366,6 +336,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
