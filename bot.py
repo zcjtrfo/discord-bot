@@ -92,25 +92,92 @@ async def maxes(ctx, *, selection: str):
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
 @bot.command(name="selection")
-async def selection(ctx, *, letters: str):
+async def selection(ctx, *, args: str):
     """
     Converts a string of letters (A–Z only) into regional indicator emojis,
-    surrounded by > and < for display.
-    Usage: !selection <letters>
-    Example: !selection COUNTDOWN
+    or a list of valid Countdown numbers into emoji formatting.
+    Usage:
+      • !selection COUNTDOWN
+      • !selection 25 50 3 6 7 10 952
     """
-    letters = letters.strip().upper()
 
-    # Validate that only A–Z are included
-    if not re.fullmatch(r"[A-Z]+", letters):
-        await ctx.send("⚠️ Please enter letters only (A–Z). Example: `!selection COUNTDOWN`")
+    args = args.strip()
+
+    # --- Check if input is letters ---
+    if re.fullmatch(r"[A-Za-z]+", args.replace(" ", "")):
+        letters = args.replace(" ", "").upper()
+        emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in letters)
+        await ctx.send(f">{emoji_output}<")
         return
 
-    # Build emoji string
-    emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in letters)
+    # --- Check if input is numbers ---
+    try:
+        numbers = [int(x) for x in args.split()]
+    except ValueError:
+        await ctx.send("⚠️ Please provide either letters (A–Z) or numbers separated by spaces.")
+        return
 
-    # Send formatted result
-    await ctx.send(f">{emoji_output}<")
+    # Must have at least 3 numbers (6 selection + 1 target typically)
+    if len(numbers) < 3:
+        await ctx.send("⚠️ Please provide at least 3 numbers (e.g. `!selection 25 50 3 6 7 10 952`).")
+        return
+
+    # Split into selection and target
+    *selection, target = numbers
+
+    # Valid Countdown numbers
+    valid_numbers = {1,2,3,4,5,6,7,8,9,10,25,50,75,100}
+
+    if not all(n in valid_numbers for n in selection):
+        await ctx.send("⚠️ Only numbers from [1,2,3,4,5,6,7,8,9,10,25,50,75,100] are allowed in the selection.")
+        return
+
+    # Emoji maps
+    emoji_map = {
+        1: ":one:",
+        2: ":two:",
+        3: ":three:",
+        4: ":four:",
+        5: ":five:",
+        6: ":six:",
+        7: ":seven:",
+        8: ":eight:",
+        9: ":nine:",
+        10: ":number_10:",
+        25: "<:twentyfive:1430640762655342602>",
+        50: "<:fifty:1430640824244371617>",
+        75: "<:seventyfive:1430640855173300325>",
+        100: "<:onehundred:1430640895895670901>",
+    }
+
+    digit_map = {
+        "0": ":zero:",
+        "1": ":one:",
+        "2": ":two:",
+        "3": ":three:",
+        "4": ":four:",
+        "5": ":five:",
+        "6": ":six:",
+        "7": ":seven:",
+        "8": ":eight:",
+        "9": ":nine:",
+    }
+
+    def to_emoji(num):
+        return emoji_map.get(num, str(num))
+
+    def target_to_emojis(target_num):
+        return " ".join(digit_map[d] for d in str(target_num))
+
+    # Format output
+    selection_emojis = " ".join(to_emoji(n) for n in selection)
+    target_emojis = target_to_emojis(target)
+
+    await ctx.send(
+        f":dart:--->{target_emojis}<---:dart:\n"
+        f"|-{selection_emojis}-|"
+    )
+
 
 
 # === Load words ===
@@ -407,6 +474,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
