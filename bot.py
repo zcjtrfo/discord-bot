@@ -431,7 +431,7 @@ async def on_message(message):
     # === Handle Numbers Channel ===
     if message.channel.id == NUMBERS_CHANNEL_ID:
         cid = message.channel.id
-        if cid in current_numbers:
+        if cid in current_numbers and not message.content.startswith("!"):
             guess = message.content.strip()
 
             # User gives up
@@ -485,7 +485,7 @@ async def on_message(message):
     # === Handle Conundrum Channel ===
     elif message.channel.id == CONUNDRUM_CHANNEL_ID:
         cid = message.channel.id
-        if cid in current:
+        if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().lower()
     
             # User gives up
@@ -532,6 +532,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
