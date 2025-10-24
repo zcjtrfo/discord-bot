@@ -451,9 +451,34 @@ async def on_message(message):
                 return
 
             if result == target:
+                user_id = str(message.author.id)
+            
+                # Get existing user data or defaults
+                existing_data = scores.get(user_id, {})
+                name = message.author.display_name
+                con_score = existing_data.get("con_score", 0)
+                num_score = existing_data.get("num_score", 0) + 1  # increment num_score by 1
+            
+                # Update user entry
+                scores[user_id] = {
+                    "name": name,
+                    "con_score": con_score,
+                    "num_score": num_score,
+                }
+            
+                # Save updated scores
+                with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(scores, f, indent=2)
+            
+                # Pick a random congrats message (same as conundrum style)
+                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
+            
+                # Send congrats + solution line
                 await message.channel.send(
-                    f"🎉 {message.author.mention} solved it correctly!\n> `{guess}` = **{target}**"
+                    f"{congrats}\n> `{guess}` = **{target}**"
                 )
+            
+                # Start a new numbers round
                 await new_numbers_round(message.channel)
                 return
 
@@ -507,6 +532,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
