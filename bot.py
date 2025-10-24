@@ -440,24 +440,35 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current:
             guess = message.content.strip().lower()
-
+    
             # User gives up
             if guess in ["give up", "giveup"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
-
+    
             # User guesses correctly
             if guess == current[cid].lower():
                 user_id = str(message.author.id)
+    
+                # Get current user data or default values
+                existing_data = scores.get(user_id, {})
+                name = message.author.display_name
+                con_score = existing_data.get("con_score", 0) + 1
+                num_score = existing_data.get("num_score", 0)
+    
+                # Update user entry
                 scores[user_id] = {
-                    "name": message.author.display_name,
-                    "score": scores.get(user_id, {}).get("score", 0) + 1,
+                    "name": name,
+                    "con_score": con_score,
+                    "num_score": num_score,
                 }
+    
+                # Write back to file
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-
+    
                 congrats = random.choice(CONGRATS_MESSAGES).format(
                     user=message.author.mention
                 )
@@ -474,6 +485,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
