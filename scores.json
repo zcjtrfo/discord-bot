@@ -1,46 +1,87 @@
 {
   "928575866567528481": {
     "name": "TCap",
-    "score": 2500
+    "con_score": 3144,
+    "num_score": 0
   },
   "715299456987430932": {
     "name": "Brocky",
-    "score": 1682
+    "con_score": 2074,
+    "num_score": 0
   },
   "101704953986297856": {
     "name": "maus",
-    "score": 395
+    "con_score": 419,
+    "num_score": 0
   },
   "521210248367833089": {
     "name": "rob",
-    "score": 287
+    "con_score": 351,
+    "num_score": 0
   },
   "418873868363759616": {
     "name": "jackjackhurst",
-    "score": 546
+    "con_score": 603,
+    "num_score": 0
   },
   "630777176660377602": {
     "name": "Fiona T",
-    "score": 25
+    "con_score": 25,
+    "num_score": 0
   },
   "1425530982039031970": {
     "name": "Livvy",
-    "score": 1
+    "con_score": 1,
+    "num_score": 0
   },
   "621010681017401349": {
     "name": "Stephen R",
-    "score": 29
+    "con_score": 38,
+    "num_score": 0
   },
   "657684986392084491": {
     "name": "Conor",
-    "score": 142
+    "con_score": 380,
+    "num_score": 0
   },
   "299569822348476417": {
-    "name": "Ibahoz",
-    "score": 831
+    "name": "Rambutanmankachow",
+    "con_score": 1106,
+    "num_score": 0
   },
   "212687527205666816": {
     "name": "RW",
-    "score": 43
+    "con_score": 140,
+    "num_score": 0
+  },
+  "596398643548913758": {
+    "name": "Ell",
+    "con_score": 12,
+    "num_score": 0
+  },
+  "1369788965636276255": {
+    "name": "Matt OC",
+    "con_score": 131,
+    "num_score": 0
+  },
+  "1430995876762882068": {
+    "name": "Gabriel T",
+    "con_score": 39,
+    "num_score": 0
+  },
+  "630831348084506624": {
+    "name": "GArmstrong97",
+    "con_score": 1,
+    "num_score": 0
+  },
+  "1275469438291939401": {
+    "name": "\ud83e\uded6\ud83e\uded6",
+    "con_score": 3,
+    "num_score": 0
+  },
+  "1226291405656428667": {
+    "name": "James Haughton",
+    "con_score": 1,
+    "num_score": 0
   }
 }
