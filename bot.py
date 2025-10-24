@@ -12,7 +12,7 @@ from parser import parse_numbers_solution
 
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
-NUMBERS_CHANNEL_ID = 1430278725739479153
+NUMBERS_CHANNEL_ID = 1431380518179573911
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -271,6 +271,16 @@ async def start_conundrums(ctx):
     await new_puzzle(ctx.channel)
     await ctx.send("🧩 Conundrum quiz started! Reply with your answers below.")
 
+@bot.command(name="start_numbers")
+@commands.has_permissions(manage_messages=True)
+async def start_numbers(ctx):
+    """Start a Countdown Numbers round (moderators only)."""
+    if ctx.channel.id != NUMBERS_CHANNEL_ID:
+        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
+        return
+
+    await new_numbers_round(ctx.channel)
+
 @bot.command(name="stop_conundrums")
 @commands.has_permissions(manage_messages=True)
 async def stop_conundrums(ctx):
@@ -284,6 +294,20 @@ async def stop_conundrums(ctx):
         await ctx.send("🛑 Conundrum quiz stopped.")
     else:
         await ctx.send("ℹ️ No active quiz is currently running here.")
+
+@bot.command(name="stop_numbers")
+@commands.has_permissions(manage_messages=True)
+async def stop_numbers(ctx):
+    """Stop the current Countdown Numbers round (moderators only)."""
+    if ctx.channel.id != NUMBERS_CHANNEL_ID:
+        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
+        return
+
+    if ctx.channel.id in current_numbers:
+        del current_numbers[ctx.channel.id]
+        await ctx.send("🛑 Numbers round stopped.")
+    else:
+        await ctx.send("ℹ️ No active Numbers round is currently running here.")
 
 @bot.command(name="points")
 async def leaderboard(ctx):
@@ -332,17 +356,6 @@ async def dump_scores(ctx):
     await ctx.send(f"```json\n{data}\n```")
 
 # === Numbers Game (numbers-bot channel only) ===
-@bot.command(name="start_numbers")
-@commands.has_permissions(manage_messages=True)
-async def start_numbers(ctx):
-    """Start a Countdown Numbers round (moderators only)."""
-    if ctx.channel.id != NUMBERS_CHANNEL_ID:
-        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
-        return
-
-    await new_numbers_round(ctx.channel)
-
-
 async def new_numbers_round(channel):
     """Generate and post a random solvable numbers puzzle with emoji formatting."""
     import random
@@ -532,6 +545,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
