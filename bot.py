@@ -11,7 +11,7 @@ from numbers_solver import solve_numbers
 from parser import parse_numbers_solution
 
 # === Configuration ===
-ALLOWED_CHANNEL_ID = 1424500871365918761
+CONUNDRUM_CHANNEL_ID = 1424500871365918761
 NUMBERS_CHANNEL_ID = 1430278725739479153
 intents = discord.Intents.default()
 intents.message_content = True
@@ -264,7 +264,7 @@ async def new_puzzle(channel):
 @commands.has_permissions(manage_messages=True)
 async def start_conundrums(ctx):
     """Start the anagram quiz in this channel (moderators only)."""
-    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+    if ctx.channel.id != CONUNDRUM_CHANNEL_ID:
         await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
         return
 
@@ -275,7 +275,7 @@ async def start_conundrums(ctx):
 @commands.has_permissions(manage_messages=True)
 async def stop_conundrums(ctx):
     """Stop the anagram quiz in this channel (moderators only)."""
-    if ctx.channel.id != ALLOWED_CHANNEL_ID:
+    if ctx.channel.id != CONUNDRUM_CHANNEL_ID:
         await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
         return
 
@@ -287,21 +287,43 @@ async def stop_conundrums(ctx):
 
 @bot.command(name="points")
 async def leaderboard(ctx):
-    """Show top solvers."""
+    """Show top solvers for either Conundrum or Numbers rounds."""
     if not scores:
         await ctx.send("No scores yet!")
         return
 
-    # Sort top 25 by score
-    top = sorted(scores.items(), key=lambda x: x[1]["score"], reverse=True)[:25]
+    channel_id = ctx.channel.id
 
-    msg = "**🏆 Countdown Conundrum Leaderboard**\n"
+    # Determine which leaderboard to show
+    if channel_id == CONUNDRUM_CHANNEL_ID:
+        key = "con_score"
+        title = "🏆 Countdown Conundrum Leaderboard"
+    elif channel_id == NUMBERS_CHANNEL_ID:
+        key = "num_score"
+        title = "🔢 Countdown Numbers Leaderboard"
+    else:
+        await ctx.send("⚠️ This command can only be used in the Conundrum or Numbers channels.")
+        return
+
+    # Filter out users with 0 in this category
+    valid_scores = {uid: info for uid, info in scores.items() if info.get(key, 0) > 0}
+
+    if not valid_scores:
+        await ctx.send("No scores yet for this category!")
+        return
+
+    # Sort and show top 15
+    top = sorted(valid_scores.items(), key=lambda x: x[1][key], reverse=True)[:15]
+
+    # Build message
+    msg = f"**{title}**\n"
     for idx, (user_id, info) in enumerate(top, 1):
         name = info["name"]
-        score = info["score"]
-        msg += f"{idx}. {name}: {score}\n"
+        score_value = info.get(key, 0)
+        msg += f"{idx}. {name}: {score_value}\n"
 
     await ctx.send(msg)
+
 
 @bot.command(name="dump_scores")
 async def dump_scores(ctx):
@@ -436,7 +458,7 @@ async def on_message(message):
                 return
 
     # === Handle Conundrum Channel ===
-    elif message.channel.id == ALLOWED_CHANNEL_ID:
+    elif message.channel.id == CONUNDRUM_CHANNEL_ID:
         cid = message.channel.id
         if cid in current:
             guess = message.content.strip().lower()
@@ -485,6 +507,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
