@@ -410,7 +410,7 @@ async def new_numbers_round(channel):
         target = random.randint(101, 999)
 
         solutions = solve_numbers(target, selection)
-        if solutions and solutions["results"]:
+        if solutions and solutions.get("difference") == 0 and solutions.get("results"):
             current_numbers[channel.id] = {
                 "selection": selection,
                 "target": target,
@@ -545,6 +545,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
