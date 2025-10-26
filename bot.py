@@ -350,10 +350,8 @@ async def leaderboard(ctx):
 
 
 @bot.command(name="dump_scores")
-async def dump_scores(ctx):
-    with open(SCORES_FILE, "r") as f:
-        data = f.read()
-    await ctx.send(f"```json\n{data}\n```")
+async def dump_scores_file(ctx):
+    await ctx.send(file=discord.File("scores.json"))
 
 # === Numbers Game (numbers-bot channel only) ===
 async def new_numbers_round(channel):
@@ -545,6 +543,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
