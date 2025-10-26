@@ -291,9 +291,9 @@ async def stop_conundrums(ctx):
 
     if ctx.channel.id in current:
         del current[ctx.channel.id]
-        await ctx.send("🛑 Conundrum quiz stopped.")
+        await ctx.send("🛑 Conundrum quiz temporarily stopped.")
     else:
-        await ctx.send("ℹ️ No active quiz is currently running here.")
+        await ctx.send("ℹ️ No active Conundrum quiz is currently running here.")
 
 @bot.command(name="stop_numbers")
 @commands.has_permissions(manage_messages=True)
@@ -305,9 +305,9 @@ async def stop_numbers(ctx):
 
     if ctx.channel.id in current_numbers:
         del current_numbers[ctx.channel.id]
-        await ctx.send("🛑 Numbers round stopped.")
+        await ctx.send("🛑 Numbers quiz temporarily stopped.")
     else:
-        await ctx.send("ℹ️ No active Numbers round is currently running here.")
+        await ctx.send("ℹ️ No active Numbers quiz is currently running here.")
 
 @bot.command(name="points")
 async def leaderboard(ctx):
@@ -350,6 +350,7 @@ async def leaderboard(ctx):
 
 
 @bot.command(name="dump_scores")
+@commands.has_permissions(manage_messages=True)
 async def dump_scores_file(ctx):
     await ctx.send(file=discord.File("scores.json"))
 
@@ -482,7 +483,7 @@ async def on_message(message):
                     json.dump(scores, f, indent=2)
             
                 # Pick a random congrats message (same as conundrum style)
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.mention)
+                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
             
                 # Send congrats + solution line
                 await message.channel.send(
@@ -497,7 +498,7 @@ async def on_message(message):
     elif message.channel.id == CONUNDRUM_CHANNEL_ID:
         cid = message.channel.id
         if cid in current and not message.content.startswith("!"):
-            guess = message.content.strip().lower()
+            guess = message.content.strip().replace("?", "").lower()
     
             # User gives up
             if guess in ["give up", "giveup"]:
@@ -528,7 +529,7 @@ async def on_message(message):
                     json.dump(scores, f, indent=2)
     
                 congrats = random.choice(CONGRATS_MESSAGES).format(
-                    user=message.author.mention
+                    user=message.author.display_name
                 )
                 await message.channel.send(congrats)
                 await new_puzzle(message.channel)
@@ -543,6 +544,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
