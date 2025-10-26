@@ -1,22 +1,22 @@
 {
   "928575866567528481": {
     "name": "TCap",
-    "con_score": 3181,
-    "num_score": 78
+    "con_score": 3764,
+    "num_score": 223
   },
   "715299456987430932": {
     "name": "Brocky",
-    "con_score": 2074,
-    "num_score": 0
+    "con_score": 2620,
+    "num_score": 155
   },
   "101704953986297856": {
     "name": "maus",
-    "con_score": 419,
+    "con_score": 423,
     "num_score": 0
   },
   "521210248367833089": {
     "name": "rob",
-    "con_score": 353,
+    "con_score": 443,
     "num_score": 5
   },
   "418873868363759616": {
@@ -26,8 +26,8 @@
   },
   "630777176660377602": {
     "name": "Fiona T",
-    "con_score": 25,
-    "num_score": 0
+    "con_score": 54,
+    "num_score": 40
   },
   "1425530982039031970": {
     "name": "Livvy",
@@ -37,22 +37,22 @@
   "621010681017401349": {
     "name": "Stephen R",
     "con_score": 38,
-    "num_score": 0
+    "num_score": 38
   },
   "657684986392084491": {
     "name": "Conor",
-    "con_score": 380,
-    "num_score": 1
+    "con_score": 405,
+    "num_score": 8
   },
   "299569822348476417": {
     "name": "Rambutanmankachow",
-    "con_score": 1106,
-    "num_score": 1
+    "con_score": 1235,
+    "num_score": 0
   },
   "212687527205666816": {
     "name": "RW",
-    "con_score": 161,
-    "num_score": 4
+    "con_score": 237,
+    "num_score": 18
   },
   "596398643548913758": {
     "name": "Ell",
@@ -61,27 +61,57 @@
   },
   "1369788965636276255": {
     "name": "Matt OC",
-    "con_score": 131,
+    "con_score": 167,
     "num_score": 0
   },
   "1430995876762882068": {
     "name": "Gabriel T",
-    "con_score": 64,
-    "num_score": 8
+    "con_score": 134,
+    "num_score": 10
   },
   "630831348084506624": {
     "name": "GArmstrong97",
-    "con_score": 1,
-    "num_score": 0
+    "con_score": 6,
+    "num_score": 22
   },
   "1275469438291939401": {
     "name": "\ud83e\uded6\ud83e\uded6",
-    "con_score": 3,
-    "num_score": 0
+    "con_score": 41,
+    "num_score": 18
   },
   "1226291405656428667": {
     "name": "James Haughton",
     "con_score": 1,
+    "num_score": 0
+  },
+  "1275423129543508060": {
+    "name": "T Less",
+    "con_score": 0,
+    "num_score": 301
+  },
+  "1279389556885684247": {
+    "name": "Des",
+    "con_score": 0,
+    "num_score": 35
+  },
+  "1029096745919057941": {
+    "name": "ThomasGeorgios",
+    "con_score": 102,
+    "num_score": 75
+  },
+  "1159403449952247821": {
+    "name": "BaldyDaz",
+    "con_score": 6,
+    "num_score": 21
+  },
+  "1158462549847715850": {
+    "name": "M3 (Andres)",
+    "con_score": 72,
+    "num_score": 11
+  },
+  "919315956365426708": {
+    "name": "ross",
+    "con_score": 123,
     "num_score": 0
   }
 }
