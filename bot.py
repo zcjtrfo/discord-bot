@@ -4,6 +4,7 @@ import discord
 import json
 import requests
 import re
+import asyncio
 import xml.etree.ElementTree as ET
 os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
@@ -234,8 +235,10 @@ SCRAMBLE_MESSAGES = [
 ]
 
 # === Active puzzles per channel/thread ===
-current = {}
+current = {} # conundrums
 current_numbers = {}  # for the Numbers game
+locks = {}              # for conundrum channels
+numbers_locks = {}      # for numbers channels
 
 # === Leaderboard storage ===
 SCORES_FILE = "scores.json"
@@ -463,36 +466,38 @@ async def on_message(message):
                 return
 
             if result == target:
-                user_id = str(message.author.id)
+                if cid not in numbers_locks:
+                    numbers_locks[cid] = asyncio.Lock()
             
-                # Get existing user data or defaults
-                existing_data = scores.get(user_id, {})
-                name = message.author.display_name
-                con_score = existing_data.get("con_score", 0)
-                num_score = existing_data.get("num_score", 0) + 1  # increment num_score by 1
+                async with numbers_locks[cid]:
+                    # Double-check still active
+                    if cid not in current_numbers:
+                        return
             
-                # Update user entry
-                scores[user_id] = {
-                    "name": name,
-                    "con_score": con_score,
-                    "num_score": num_score,
-                }
+                    user_id = str(message.author.id)
             
-                # Save updated scores
-                with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(scores, f, indent=2)
+                    existing_data = scores.get(user_id, {})
+                    name = message.author.display_name
+                    con_score = existing_data.get("con_score", 0)
+                    num_score = existing_data.get("num_score", 0) + 1
             
-                # Pick a random congrats message (same as conundrum style)
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
+                    scores[user_id] = {
+                        "name": name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                    }
             
-                # Send congrats + solution line
-                await message.channel.send(
-                    f"{congrats}\n> `{guess}` = **{target}**"
-                )
+                    with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                        json.dump(scores, f, indent=2)
             
-                # Start a new numbers round
-                await new_numbers_round(message.channel)
-                return
+                    congrats = random.choice(CONGRATS_MESSAGES).format(
+                        user=message.author.display_name
+                    )
+                    await message.channel.send(f"{congrats}\n> `{guess}` = **{target}**")
+            
+                    del current_numbers[cid]
+                    await new_numbers_round(message.channel)
+
 
     # === Handle Conundrum Channel ===
     elif message.channel.id == CONUNDRUM_CHANNEL_ID:
@@ -509,30 +514,40 @@ async def on_message(message):
     
             # User guesses correctly
             if guess == current[cid].lower():
-                user_id = str(message.author.id)
-    
-                # Get current user data or default values
-                existing_data = scores.get(user_id, {})
-                name = message.author.display_name
-                con_score = existing_data.get("con_score", 0) + 1
-                num_score = existing_data.get("num_score", 0)
-    
-                # Update user entry
-                scores[user_id] = {
-                    "name": name,
-                    "con_score": con_score,
-                    "num_score": num_score,
-                }
-    
-                # Write back to file
-                with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(scores, f, indent=2)
-    
-                congrats = random.choice(CONGRATS_MESSAGES).format(
-                    user=message.author.display_name
-                )
-                await message.channel.send(congrats)
-                await new_puzzle(message.channel)
+                # Ensure only one winner per round using a lock
+                if cid not in locks:
+                    locks[cid] = asyncio.Lock()
+            
+                async with locks[cid]:
+                    # Double-check puzzle still active (not already replaced)
+                    if cid not in current:
+                        return
+            
+                    user_id = str(message.author.id)
+            
+                    existing_data = scores.get(user_id, {})
+                    name = message.author.display_name
+                    con_score = existing_data.get("con_score", 0) + 1
+                    num_score = existing_data.get("num_score", 0)
+            
+                    scores[user_id] = {
+                        "name": name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                    }
+            
+                    with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                        json.dump(scores, f, indent=2)
+            
+                    congrats = random.choice(CONGRATS_MESSAGES).format(
+                        user=message.author.display_name
+                    )
+                    await message.channel.send(congrats)
+            
+                    # Mark current puzzle as done to prevent duplicate wins
+                    del current[cid]
+                    await new_puzzle(message.channel)
+
 
     # Always allow other commands to process
     await bot.process_commands(message)
@@ -544,6 +559,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
