@@ -98,6 +98,47 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
+import aiohttp
+from discord.ext import commands
+import xml.etree.ElementTree as ET
+
+@commands.command(name="define")
+async def define(ctx, *, word: str = None):
+    """Look up the definition of a word using FocalTools API."""
+    if not word:
+        await ctx.send(f"**{word}**: ❌ INVALID")
+        return
+
+    url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip=c4c"
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
+                    return
+
+                text = await response.text()
+
+                # Parse XML
+                try:
+                    root = ET.fromstring(text)
+                    definition = root.text.strip() if root.text else ""
+
+                    if definition.upper() == "INVALID":
+                        await ctx.send(f"**{word.upper()}**: ❌ INVALID")
+                    elif definition.upper() == "DEFINITION NOT FOUND":
+                        await ctx.send(f"**{word.upper()}**: No definition found for this word")
+                    else:
+                        await ctx.send(f"**{word.upper()}**: {definition}")
+
+                except ET.ParseError:
+                    await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
+
+    except Exception:
+        await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
+
+
 @bot.command(name="selection")
 async def selection(ctx, *, args: str):
     """
@@ -623,5 +664,6 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
