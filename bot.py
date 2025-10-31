@@ -10,6 +10,9 @@ os.environ["DISCORD_NO_AUDIO"] = "1"
 from discord.ext import commands
 from numbers_solver import solve_numbers
 from parser import parse_numbers_solution
+import aiohttp
+from discord.ext import commands
+import xml.etree.ElementTree as ET
 
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
@@ -98,48 +101,46 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
-import aiohttp
-from discord.ext import commands
-import xml.etree.ElementTree as ET
 
 @bot.command(name="define")
 async def define(ctx, *, word: str = None):
     """Look up the definition of a word using FocalTools API."""
 
-    # Validate input: must be a single word with only letters A-Z
+    import requests
+    import urllib.parse
+    import xml.etree.ElementTree as ET
+    import re
+
+    # Validation: single word, letters A-Z only
     if not word or not re.fullmatch(r"[A-Za-z]+", word.strip()):
-        await ctx.send(⚠️ Query must be a single word containing only A-Z.")
+        await ctx.send("⚠️ Query must be a single word containing only A-Z.")
         return
 
-    word = word.strip()
-    url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip=c4c"
+    word = word.strip().upper()
+    user_identifier = urllib.parse.quote(ctx.author.name)
+    url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip={user_identifier}"
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status != 200:
-                    await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
-                    return
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
 
-                text = await response.text()
+        # Parse XML
+        try:
+            root = ET.fromstring(response.text)
+            definition = root.text.strip() if root.text else ""
 
-                # Parse XML
-                try:
-                    root = ET.fromstring(text)
-                    definition = root.text.strip() if root.text else ""
+            if definition.upper() == "INVALID":
+                await ctx.send(f"**{word}**: ❌ INVALID")
+            elif definition.upper() == "DEFINITION NOT FOUND":
+                await ctx.send(f"**{word}**: No definition found for this word")
+            else:
+                await ctx.send(f"**{word}**: {definition}")
 
-                    if definition.upper() == "INVALID":
-                        await ctx.send(f"**{word.upper()}**: ❌ INVALID")
-                    elif definition.upper() == "DEFINITION NOT FOUND":
-                        await ctx.send(f"**{word.upper()}**: No definition found for this word")
-                    else:
-                        await ctx.send(f"**{word.upper()}**: {definition}")
+        except ET.ParseError:
+            await ctx.send(f"**{word}**: ⚠️ Could not parse response from API.")
 
-                except ET.ParseError:
-                    await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
-
-    except Exception:
-        await ctx.send(f"**{word.upper()}**: ⚠️ An unexpected error occurred.")
+    except Exception as e:
+        await ctx.send(f"**{word}**: ⚠️ Could not process request — `{e}`")
 
 
 @bot.command(name="selection")
@@ -667,6 +668,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
