@@ -102,13 +102,16 @@ import aiohttp
 from discord.ext import commands
 import xml.etree.ElementTree as ET
 
-@commands.command(name="define")
+@bot.command(name="define")
 async def define(ctx, *, word: str = None):
     """Look up the definition of a word using FocalTools API."""
-    if not word:
-        await ctx.send(f"**{word}**: ❌ INVALID")
+
+    # Validate input: must be a single word with only letters A-Z
+    if not word or not re.fullmatch(r"[A-Za-z]+", word.strip()):
+        await ctx.send(⚠️ Query must be a single word containing only A-Z.")
         return
 
+    word = word.strip()
     url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip=c4c"
 
     try:
@@ -664,6 +667,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
