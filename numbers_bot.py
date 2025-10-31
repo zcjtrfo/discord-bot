@@ -1,4 +1,4 @@
-=import random
+import random
 import asyncio
 from bot import bot, current_numbers, numbers_locks  # import shared state
 from numbers_solver import solve_numbers
