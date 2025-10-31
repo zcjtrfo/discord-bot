@@ -394,17 +394,31 @@ async def leaderboard(ctx):
         await ctx.send("No scores yet for this category!")
         return
 
-    # Sort and show top 15
-    top = sorted(valid_scores.items(), key=lambda x: x[1][key], reverse=True)[:15]
+    # Sort all users by score descending
+    sorted_scores = sorted(valid_scores.items(), key=lambda x: x[1][key], reverse=True)
 
-    # Build message
     msg = f"**{title}**\n"
-    for idx, (user_id, info) in enumerate(top, 1):
+    user_id_str = str(ctx.author.id)
+    user_rank_info = None
+
+    for idx, (uid, info) in enumerate(sorted_scores, 1):
         name = info.get("name", "Unknown User")
         score_value = info.get(key, 0)
-        msg += f"{idx}. {name}: {score_value}\n"
+
+        # Build top 15 leaderboard
+        if idx <= 15:
+            msg += f"{idx}. {name}: {score_value}\n"
+
+        # Check if this is the command user
+        if str(uid) == user_id_str:
+            user_rank_info = (idx, score_value)
+
+    # If user is not in top 15, append their rank
+    if user_rank_info and user_rank_info[0] > 15:
+        msg += f"\n{user_rank_info[0]}. {ctx.author.display_name}: {user_rank_info[1]}"
 
     await ctx.send(msg)
+
 
 
 @bot.command(name="dump_scores")
@@ -609,4 +623,5 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
