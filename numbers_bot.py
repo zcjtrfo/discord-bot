@@ -1,11 +1,7 @@
-import random
+=import random
 import asyncio
-from bot import bot  # shared bot instance
+from bot import bot, current_numbers, numbers_locks  # import shared state
 from numbers_solver import solve_numbers
-
-# === Active puzzles per channel ===
-current_numbers = {}  # {channel_id: {selection, target, solution}}
-numbers_locks = {}    # asyncio locks per channel
 
 # === Emoji maps ===
 NUMBER_EMOJIS = {
@@ -41,7 +37,6 @@ async def new_numbers_round(channel):
     Stores the solution in current_numbers[channel.id].
     """
     while True:
-        # Randomly decide number of large numbers (0–4)
         L = random.randint(0, 4)
         larges = random.sample([25, 50, 75, 100], L)
         smalls = random.sample(
@@ -51,7 +46,6 @@ async def new_numbers_round(channel):
         selection = larges + smalls
         target = random.randint(101, 999)
 
-        # Solve the puzzle
         solutions = solve_numbers(target, selection)
         if solutions and solutions.get("difference") == 0 and solutions.get("results"):
             current_numbers[channel.id] = {
