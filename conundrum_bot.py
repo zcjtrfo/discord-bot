@@ -1,6 +1,6 @@
 import random
 import asyncio
-from bot import bot  # shared bot instance
+from bot import bot, current, locks  # import shared state
 
 # === Conundrum word list ===
 WORDS = []
@@ -9,10 +9,6 @@ with open("conundrums.txt", encoding="utf-8") as f:
         w = line.strip()
         if w:
             WORDS.append(w)
-
-# === Active puzzles per channel ===
-current = {}   # {channel_id: current_word}
-locks = {}     # asyncio locks per channel
 
 # === Message templates ===
 SCRAMBLE_MESSAGES = [
@@ -41,7 +37,6 @@ CONGRATS_MESSAGES = [
     "👀 What a spot, {user}!",
 ]
 
-
 # === Helper Functions ===
 def scramble(word: str) -> str:
     """Randomly scramble a word, ensuring it's not identical to the original."""
@@ -67,7 +62,7 @@ async def new_puzzle(channel):
     """Select a random word, scramble it, and post to the channel."""
     word = random.choice(WORDS)
     scrambled_word = scramble(word)
-    current[channel.id] = word
+    current[channel.id] = word  # use shared dictionary
 
     scramble_emoji = regional_indicator(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
