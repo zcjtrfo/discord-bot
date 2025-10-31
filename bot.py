@@ -14,6 +14,12 @@ from parser import parse_numbers_solution
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
 NUMBERS_CHANNEL_ID = 1431380518179573911
+
+# ✅ Test channels
+TEST_GENERAL_CHANNEL_ID = 1424857126878052413
+TEST_CONUNDRUMS_CHANNEL_ID = 1433910612009816356
+TEST_NUMBERS_CHANNEL_ID = 1430278725739479153
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -262,59 +268,108 @@ async def new_puzzle(channel):
     formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
     await channel.send(formatted_message)
 
-# === Moderator-only Conundrum Commands ===
-@bot.command(name="start_conundrums")
+# === Moderator-only Conundrum & Numbers Commands (updated) ===
+
+# === Test-only Commands ===
+@bot.command(name="start_tests")
 @commands.has_permissions(manage_messages=True)
-async def start_conundrums(ctx):
-    """Start the anagram quiz in this channel (moderators only)."""
-    if ctx.channel.id != CONUNDRUM_CHANNEL_ID:
-        await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
+async def start_tests(ctx):
+    """Start both test conundrum and numbers quizzes (usable only in #test_general)."""
+    if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
+        await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    await new_puzzle(ctx.channel)
-    await ctx.send("🧩 Conundrum quiz started! Reply with your answers below.")
+    test_conundrum_channel = bot.get_channel(TEST_CONUNDRUMS_CHANNEL_ID)
+    test_numbers_channel = bot.get_channel(TEST_NUMBERS_CHANNEL_ID)
 
-@bot.command(name="start_numbers")
+    if test_conundrum_channel:
+        await new_puzzle(test_conundrum_channel)
+        await test_conundrum_channel.send("🧩 Test Conundrum quiz started! Reply with your answers below.")
+    if test_numbers_channel:
+        await new_numbers_round(test_numbers_channel)
+
+    await ctx.send("✅ Test quizzes started in #test_conundrums and #test_numbers.")
+
+
+@bot.command(name="stop_tests")
 @commands.has_permissions(manage_messages=True)
-async def start_numbers(ctx):
-    """Start a Countdown Numbers round (moderators only)."""
-    if ctx.channel.id != NUMBERS_CHANNEL_ID:
-        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
+async def stop_tests(ctx):
+    """Stop both test conundrum and numbers quizzes (usable only in #test_general)."""
+    if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
+        await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    await new_numbers_round(ctx.channel)
+    # Stop test conundrum
+    if TEST_CONUNDRUMS_CHANNEL_ID in current:
+        del current[TEST_CONUNDRUMS_CHANNEL_ID]
+        ch = bot.get_channel(TEST_CONUNDRUMS_CHANNEL_ID)
+        if ch:
+            await ch.send("🛑 Test Conundrum quiz stopped.")
 
-@bot.command(name="stop_conundrums")
+    # Stop test numbers
+    if TEST_NUMBERS_CHANNEL_ID in current_numbers:
+        del current_numbers[TEST_NUMBERS_CHANNEL_ID]
+        ch = bot.get_channel(TEST_NUMBERS_CHANNEL_ID)
+        if ch:
+            await ch.send("🛑 Test Numbers quiz stopped.")
+
+    await ctx.send("✅ Test quizzes stopped in #test_conundrums and #test_numbers.")
+
+
+@bot.command(name="start_bots")
 @commands.has_permissions(manage_messages=True)
-async def stop_conundrums(ctx):
-    """Stop the anagram quiz in this channel (moderators only)."""
-    if ctx.channel.id != CONUNDRUM_CHANNEL_ID:
-        await ctx.send("⚠️ This bot only runs in the designated conundrum channel.")
+async def start_bots(ctx):
+    """Start all bots (conundrums + numbers) across all channels from test_general."""
+    if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
+        await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    if ctx.channel.id in current:
-        del current[ctx.channel.id]
-        await ctx.send("🛑 Conundrum quiz temporarily stopped.")
-    else:
-        await ctx.send("ℹ️ No active Conundrum quiz is currently running here.")
+    # All four channels
+    all_channels = [
+        bot.get_channel(CONUNDRUM_CHANNEL_ID),
+        bot.get_channel(TEST_CONUNDRUMS_CHANNEL_ID),
+        bot.get_channel(NUMBERS_CHANNEL_ID),
+        bot.get_channel(TEST_NUMBERS_CHANNEL_ID),
+    ]
 
-@bot.command(name="stop_numbers")
+    for ch in all_channels:
+        if ch:
+            if ch.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
+                await new_puzzle(ch)
+                await ch.send("🧩 Conundrum quiz started! Reply with your answers below.")
+            elif ch.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
+                await new_numbers_round(ch)
+    await ctx.send("✅ All bots started in all quiz channels.")
+
+
+@bot.command(name="stop_bots")
 @commands.has_permissions(manage_messages=True)
-async def stop_numbers(ctx):
-    """Stop the current Countdown Numbers round (moderators only)."""
-    if ctx.channel.id != NUMBERS_CHANNEL_ID:
-        await ctx.send("⚠️ This command can only be used in the Numbers channel.")
+async def stop_bots(ctx):
+    """Stop all bots (conundrums + numbers) across all channels from test_general."""
+    if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
+        await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    if ctx.channel.id in current_numbers:
-        del current_numbers[ctx.channel.id]
-        await ctx.send("🛑 Numbers quiz temporarily stopped.")
-    else:
-        await ctx.send("ℹ️ No active Numbers quiz is currently running here.")
+    # Stop all current quizzes
+    for cid in list(current.keys()):
+        del current[cid]
+    for cid in list(current_numbers.keys()):
+        del current_numbers[cid]
+
+    # Inform the channels
+    for ch_id in [
+        CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID,
+        NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID
+    ]:
+        ch = bot.get_channel(ch_id)
+        if ch:
+            await ch.send("🛑 All bots have been stopped.")
+
+    await ctx.send("✅ All bots stopped across all quiz channels.")
 
 @bot.command(name="points")
 async def leaderboard(ctx):
-    """Show top solvers for either Conundrum or Numbers rounds."""
+    """Show top solvers for either Conundrum or Numbers rounds (works in test & main channels)."""
     if not scores:
         await ctx.send("No scores yet!")
         return
@@ -322,10 +377,10 @@ async def leaderboard(ctx):
     channel_id = ctx.channel.id
 
     # Determine which leaderboard to show
-    if channel_id == CONUNDRUM_CHANNEL_ID:
+    if channel_id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
         key = "con_score"
         title = "🏆 Countdown Conundrum Leaderboard"
-    elif channel_id == NUMBERS_CHANNEL_ID:
+    elif channel_id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
         key = "num_score"
         title = "🔢 Countdown Numbers Leaderboard"
     else:
@@ -345,7 +400,7 @@ async def leaderboard(ctx):
     # Build message
     msg = f"**{title}**\n"
     for idx, (user_id, info) in enumerate(top, 1):
-        name = info["name"]
+        name = info.get("name", "Unknown User")
         score_value = info.get(key, 0)
         msg += f"{idx}. {name}: {score_value}\n"
 
@@ -355,7 +410,16 @@ async def leaderboard(ctx):
 @bot.command(name="dump_scores")
 @commands.has_permissions(manage_messages=True)
 async def dump_scores_file(ctx):
-    await ctx.send(file=discord.File("scores.json"))
+    """Send the current scores.json file (only usable from #test_general)."""
+    if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
+        await ctx.send("⚠️ This command can't be used in this channel.")
+        return
+
+    try:
+        await ctx.send(file=discord.File("scores.json"))
+        await ctx.send("✅ Scores file dumped successfully.")
+    except FileNotFoundError:
+        await ctx.send("⚠️ No scores file found.")
 
 # === Numbers Game (numbers-bot channel only) ===
 async def new_numbers_round(channel):
@@ -442,8 +506,8 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # === Handle Numbers Channel ===
-    if message.channel.id == NUMBERS_CHANNEL_ID:
+    # --- NUMBERS CHANNELS (main + test) ---
+    if message.channel.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
         cid = message.channel.id
         if cid in current_numbers and not message.content.startswith("!"):
             guess = message.content.strip()
@@ -455,16 +519,13 @@ async def on_message(message):
                 await new_numbers_round(message.channel)
                 return
 
-            # User attempts a guess
             selection = current_numbers[cid]["selection"]
             target = current_numbers[cid]["target"]
 
             result = parse_numbers_solution(guess, selection)
             if result is False:
-                # silently ignore invalid attempts
-                return
+                return  # ignore invalid attempts
 
-            # === LOCK BEFORE COMPARING ===
             if cid not in numbers_locks:
                 numbers_locks[cid] = asyncio.Lock()
 
@@ -474,7 +535,6 @@ async def on_message(message):
 
                 if result == target:
                     user_id = str(message.author.id)
-
                     existing_data = scores.get(user_id, {})
                     name = message.author.display_name
                     con_score = existing_data.get("con_score", 0)
@@ -489,30 +549,25 @@ async def on_message(message):
                     with open(SCORES_FILE, "w", encoding="utf-8") as f:
                         json.dump(scores, f, indent=2)
 
-                    congrats = random.choice(CONGRATS_MESSAGES).format(
-                        user=message.author.display_name
-                    )
+                    congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
                     await message.channel.send(f"{congrats}\n> `{guess}` = **{target}**")
 
-                    # Remove puzzle and start a new one atomically
                     del current_numbers[cid]
                     await new_numbers_round(message.channel)
                     return
 
-    # === Handle Conundrum Channel ===
-    elif message.channel.id == CONUNDRUM_CHANNEL_ID:
+    # --- CONUNDRUM CHANNELS (main + test) ---
+    elif message.channel.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
         cid = message.channel.id
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
 
-            # User gives up
             if guess in ["give up", "giveup"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
 
-            # === LOCK BEFORE COMPARING ===
             if cid not in locks:
                 locks[cid] = asyncio.Lock()
 
@@ -522,7 +577,6 @@ async def on_message(message):
 
                 if guess == current[cid].lower():
                     user_id = str(message.author.id)
-
                     existing_data = scores.get(user_id, {})
                     name = message.author.display_name
                     con_score = existing_data.get("con_score", 0) + 1
@@ -537,17 +591,14 @@ async def on_message(message):
                     with open(SCORES_FILE, "w", encoding="utf-8") as f:
                         json.dump(scores, f, indent=2)
 
-                    congrats = random.choice(CONGRATS_MESSAGES).format(
-                        user=message.author.display_name
-                    )
+                    congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
                     await message.channel.send(congrats)
 
-                    # Mark current puzzle as done to prevent duplicate wins
                     del current[cid]
                     await new_puzzle(message.channel)
                     return
 
-    # Always allow other commands to process
+    # Always allow commands to process
     await bot.process_commands(message)
 
 
@@ -558,38 +609,3 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
