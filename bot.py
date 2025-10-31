@@ -363,7 +363,7 @@ async def stop_bots(ctx):
     ]:
         ch = bot.get_channel(ch_id)
         if ch:
-            await ch.send("🛑 All bots have been stopped.")
+            await ch.send("🛑 Quiz has been temporarily stopped.")
 
     await ctx.send("✅ All bots stopped across all quiz channels.")
 
@@ -609,3 +609,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
