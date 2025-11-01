@@ -163,7 +163,10 @@ async def define_word(ctx, *, term: str):
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
-# === Quantum Tombola solver link ===
+import re
+import urllib.parse
+
+# === Quantum Tombola solver link with selection/target in text ===
 @bot.command(name="solve")
 async def solve(ctx, *, input_text: str):
     """
@@ -174,10 +177,10 @@ async def solve(ctx, *, input_text: str):
     # Split input by spaces
     parts = input_text.strip().split()
 
-    # Validate: at least 2 numbers, up to 8 (7 selection + 1 target)
-    if len(parts) < 2 or len(parts) > 8:
+    # Validate: at least 3 numbers (2 selection + 1 target), up to 8 (7 selection + 1 target)
+    if len(parts) < 3 or len(parts) > 8:
         await ctx.send(
-            "⚠️ Invalid input. Please provide up to 7 selection numbers followed by 1 target number.\n"
+            "⚠️ Invalid input. Please provide **at least 2 selection numbers** followed by **1 target number**, up to 7 selections.\n"
             "Example: `!solve 100 75 50 25 6 3 952`"
         )
         return
@@ -194,8 +197,13 @@ async def solve(ctx, *, input_text: str):
     selection_param = "-".join(selection_numbers)
     url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(target)}"
 
-    # Send clickable hyperlink
-    await ctx.send(f"[See all solutions]({url})")
+    # Construct clickable message text
+    selection_text = " ".join(selection_numbers)
+    message_text = f"See all solutions for {selection_text} -> {target} in Quantum Tombola"
+
+    # Send clickable markdown hyperlink (prevents embed/preview)
+    await ctx.send(f"[{message_text}]({url})")
+
 
 @bot.command(name="selection")
 async def selection(ctx, *, args: str):
@@ -721,6 +729,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
