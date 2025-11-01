@@ -102,44 +102,6 @@ async def maxes(ctx, *, selection: str):
 
 
 
-@bot.command(name="define")
-async def define(ctx, *, word: str = None):
-    """Look up the definition of a word using FocalTools API."""
-
-    # Validate input: single word, letters A-Z
-    if not word or not re.fullmatch(r"[A-Za-z]+", word.strip()):
-        await ctx.send("⚠️ Query must be a single word containing only A-Z.")
-        return
-
-    word = word.strip().upper()
-    user_identifier = urllib.parse.quote(ctx.author.name)
-    url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip={user_identifier}"
-
-    response = requests.get(url, timeout=10)
-    print("RAW RESPONSE:", repr(response.text))  # Debug line
-    response.raise_for_status()
-
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-
-        # Strip namespace from XML
-        xml_text = re.sub(r'xmlns="[^"]+"', '', response.text, count=1)
-        root = ET.fromstring(xml_text)
-        definition = root.text.strip() if root.text else ""
-
-        if definition.upper() == "INVALID":
-            await ctx.send(f"**{word}**: ❌ INVALID")
-        elif definition.upper() == "DEFINITION NOT FOUND":
-            await ctx.send(f"**{word}**: No definition found for this word")
-        else:
-            await ctx.send(f"**{word}**: {definition}")
-
-    except Exception as e:
-        await ctx.send(f"**{word}**: ⚠️ Could not process request — `{e}`")
-
-
-
 @bot.command(name="selection")
 async def selection(ctx, *, args: str):
     """
@@ -664,6 +626,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
