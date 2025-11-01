@@ -93,10 +93,12 @@ async def maxes(ctx, *, selection: str):
             await ctx.send(f"⚠️ No words found for *{selection}*.")
             return
 
-        # Sort alphabetically for nice presentation
-        sorted_words = sorted(words)
+        # Sort alphabetically and uppercase (just to be safe)
+        sorted_words = sorted([w.upper() for w in words])
 
-        await ctx.send(f"🔤 **Maxes from *{selection}***:\n> {', '.join(sorted_words)}")
+        # ✅ Format the words in bold, and selection in italics
+        formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
+        await ctx.send(f":arrow_up: Maxes from *{selection}*: {formatted_words}")
 
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
@@ -104,6 +106,7 @@ async def maxes(ctx, *, selection: str):
         await ctx.send(f"⚠️ Unexpected response format from API for *{selection}*.")
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
+
 
 # === Word definition lookup (with input validation) ===
 @bot.command(name="define")
@@ -686,6 +689,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
