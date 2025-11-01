@@ -99,13 +99,24 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
-# === Word definition lookup (final + quote handling) ===
+# === Word definition lookup (with input validation) ===
 @bot.command(name="define")
 async def define_word(ctx, *, term: str):
     """
     Retrieves the definition of a word using the FocalTools API.
     Usage: !define <word>
+    Only accepts single alphabetic words (A–Z).
     """
+    term = term.strip()
+
+    # ✅ Validate input (only A–Z, one word)
+    if not re.fullmatch(r"[A-Za-z]+", term):
+        await ctx.send(
+            "⚠️ Please provide a **single word** containing only letters A–Z.\n"
+            "Example: `!define apple`"
+        )
+        return
+
     try:
         user_identifier = ctx.author.name
         url = f"https://focaltools.azurewebsites.net/api/define/{term}?ip={user_identifier}"
@@ -142,8 +153,6 @@ async def define_word(ctx, *, term: str):
 
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
-
-
 
 
 
@@ -671,6 +680,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
