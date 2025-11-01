@@ -1,33 +1,33 @@
 {
   "928575866567528481": {
     "name": "TCap",
-    "con_score": 5083,
+    "con_score": 5108,
     "num_score": 461
   },
   "715299456987430932": {
     "name": "Brocky",
-    "con_score": 3622,
-    "num_score": 427
+    "con_score": 3767,
+    "num_score": 462
   },
   "101704953986297856": {
     "name": "maus",
-    "con_score": 491,
+    "con_score": 498,
     "num_score": 21
   },
   "521210248367833089": {
     "name": "rob",
-    "con_score": 798,
-    "num_score": 28
+    "con_score": 855,
+    "num_score": 32
   },
   "418873868363759616": {
     "name": "jackjackhurst",
-    "con_score": 845,
+    "con_score": 938,
     "num_score": 0
   },
   "630777176660377602": {
     "name": "Fiona T",
-    "con_score": 129,
-    "num_score": 149
+    "con_score": 132,
+    "num_score": 153
   },
   "1425530982039031970": {
     "name": "Livvy",
@@ -41,17 +41,17 @@
   },
   "657684986392084491": {
     "name": "Conor",
-    "con_score": 1812,
-    "num_score": 49
+    "con_score": 1814,
+    "num_score": 51
   },
   "299569822348476417": {
     "name": "MonsieurMaestroni",
-    "con_score": 3774,
+    "con_score": 3790,
     "num_score": 6
   },
   "212687527205666816": {
     "name": "RW",
-    "con_score": 398,
+    "con_score": 407,
     "num_score": 52
   },
   "596398643548913758": {
@@ -66,7 +66,7 @@
   },
   "1430995876762882068": {
     "name": "Gabriel T",
-    "con_score": 223,
+    "con_score": 230,
     "num_score": 10
   },
   "630831348084506624": {
@@ -87,12 +87,12 @@
   "1275423129543508060": {
     "name": "T Less",
     "con_score": 1,
-    "num_score": 990
+    "num_score": 1018
   },
   "1279389556885684247": {
     "name": "Des",
     "con_score": 110,
-    "num_score": 79
+    "num_score": 86
   },
   "1029096745919057941": {
     "name": "ThomasGeorgios",
@@ -102,21 +102,21 @@
   "1159403449952247821": {
     "name": "BaldyDaz",
     "con_score": 6,
-    "num_score": 21
+    "num_score": 45
   },
   "1158462549847715850": {
     "name": "M3 (Andres)",
-    "con_score": 319,
+    "con_score": 392,
     "num_score": 26
   },
   "919315956365426708": {
     "name": "ross",
-    "con_score": 746,
+    "con_score": 818,
     "num_score": 0
   },
   "181371725106249728": {
     "name": "Dagon",
-    "con_score": 75,
+    "con_score": 76,
     "num_score": 9
   },
   "546110197807185921": {
@@ -131,12 +131,12 @@
   },
   "478297330517540865": {
     "name": "bhuang888",
-    "con_score": 0,
-    "num_score": 1
+    "con_score": 2,
+    "num_score": 3
   },
   "135525287138951168": {
     "name": "Matty",
-    "con_score": 208,
+    "con_score": 216,
     "num_score": 1
   },
   "655166080490143745": {
@@ -151,38 +151,38 @@
   },
   "763446611174096916": {
     "name": "Ethan",
-    "con_score": 97,
+    "con_score": 107,
     "num_score": 63
   },
   "910100048925327360": {
     "name": "colint",
-    "con_score": 170,
-    "num_score": 207
+    "con_score": 201,
+    "num_score": 233
   },
   "634099505590960129": {
     "name": "Tom Finn",
-    "con_score": 31,
-    "num_score": 148
+    "con_score": 34,
+    "num_score": 190
   },
   "1027532403893358612": {
     "name": "Monarch",
     "con_score": 2,
-    "num_score": 10
+    "num_score": 12
   },
   "117749297562255364": {
     "name": "Silas",
-    "con_score": 15,
+    "con_score": 16,
     "num_score": 0
   },
   "1077748681798864916": {
     "name": "quinn",
-    "con_score": 595,
+    "con_score": 673,
     "num_score": 0
   },
   "572184570561167361": {
     "name": "Charlie H.",
-    "con_score": 273,
-    "num_score": 0
+    "con_score": 283,
+    "num_score": 2
   },
   "628678296892342321": {
     "name": "graeme",
@@ -191,7 +191,7 @@
   },
   "228509422626799618": {
     "name": "adillo",
-    "con_score": 55,
+    "con_score": 250,
     "num_score": 0
   },
   "741980613732728863": {
@@ -201,12 +201,12 @@
   },
   "742815728574529577": {
     "name": "Sam Cappleman-Lynes",
-    "con_score": 46,
+    "con_score": 54,
     "num_score": 3
   },
   "234479369920315392": {
     "name": "JonPinyan",
     "con_score": 0,
-    "num_score": 3
+    "num_score": 6
   }
 }
