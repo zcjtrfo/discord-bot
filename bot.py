@@ -99,7 +99,7 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
-# === Word definition lookup ===
+# === Word definition lookup (fixed) ===
 @bot.command(name="define")
 async def define_word(ctx, *, term: str):
     """
@@ -115,23 +115,26 @@ async def define_word(ctx, *, term: str):
         response.raise_for_status()
         data = response.text.strip()
 
-        # Extract the definition text from the XML response
+        definition = None
+
+        # Case 1: XML response with <string> tags
         if "<string" in data and "</string>" in data:
-            # Remove XML tags
             start = data.find(">") + 1
             end = data.rfind("</string>")
             definition = data[start:end].strip()
+        # Case 2: Plain text response
+        elif data:
+            definition = data
 
-            # Send formatted message
-            if definition:
-                await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
-            else:
-                await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
+        # Send formatted result
+        if definition:
+            await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
         else:
-            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
+            await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
 
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
+
 
 
 @bot.command(name="selection")
@@ -658,6 +661,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
