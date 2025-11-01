@@ -166,7 +166,7 @@ async def define_word(ctx, *, term: str):
 import re
 import urllib.parse
 
-# === Quantum Tombola solver link with selection/target in text ===
+# === Quantum Tombola solver link (no preview) ===
 @bot.command(name="solve")
 async def solve(ctx, *, input_text: str):
     """
@@ -197,12 +197,12 @@ async def solve(ctx, *, input_text: str):
     selection_param = "-".join(selection_numbers)
     url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(target)}"
 
-    # Construct clickable message text
+    # Construct message text
     selection_text = " ".join(selection_numbers)
-    message_text = f"See all solutions for {selection_text} -> {target} in Quantum Tombola"
+    message_text = f"See all solutions in Quantum Tombola:"
 
-    # Send clickable markdown hyperlink (prevents embed/preview)
-    await ctx.send(f"[{message_text}]({url})")
+    # Send message + URL separately in angle brackets to prevent preview
+    await ctx.send(f"{message_text}\n<{url}>"
 
 
 @bot.command(name="selection")
@@ -729,6 +729,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
