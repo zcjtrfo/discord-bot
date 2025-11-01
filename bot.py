@@ -99,7 +99,7 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
-# === Word definition lookup (fixed) ===
+# === Word definition lookup (final version) ===
 @bot.command(name="define")
 async def define_word(ctx, *, term: str):
     """
@@ -126,14 +126,26 @@ async def define_word(ctx, *, term: str):
         elif data:
             definition = data
 
-        # Send formatted result
+        # Normalize the text for comparison
         if definition:
+            normalized = definition.strip().upper()
+
+            # Handle special responses
+            if normalized == "DEFINITION NOT FOUND":
+                await ctx.send(f"ℹ️ No definition found for **{term.upper()}**.")
+                return
+            elif normalized == "INVALID":
+                await ctx.send(f"❌ **{term.upper()}** is invalid.")
+                return
+
+            # Otherwise, send the real definition
             await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
         else:
             await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
 
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
+
 
 
 
@@ -661,6 +673,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
