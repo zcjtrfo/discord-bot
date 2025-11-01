@@ -55,10 +55,11 @@ async def check_word(ctx, *, term: str):
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
+# === Longest word finder ===
 @bot.command(name="maxes")
 async def maxes(ctx, *, selection: str):
     """
-    Finds the longest possible words from the given selection using the FocalTools API.
+    Retrieves the longest possible words from the given selection using the FocalTools API.
     Usage: !maxes <letters> (supports up to two '*' wildcards)
     """
 
@@ -79,23 +80,28 @@ async def maxes(ctx, *, selection: str):
         return
 
     user_identifier = urllib.parse.quote(ctx.author.name)
-    url = f"https://focaltools.azurewebsites.net/api/getwords/{selection}?ip={user_identifier}"
+    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection}?ip={user_identifier}"
 
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # Parse JSON array
+        # Parse the JSON array response directly
         words = json.loads(response.text)
+
         if not words:
             await ctx.send(f"⚠️ No words found for *{selection}*.")
             return
 
-        max_len = max(len(w) for w in words)
-        max_words = [w for w in words if len(w) == max_len]
+        # Sort alphabetically for nice presentation
+        sorted_words = sorted(words)
 
-        await ctx.send(f":arrow_up: Maxes from *{selection}*: **{', '.join(sorted(max_words))}**")
+        await ctx.send(f"🔤 **Maxes from *{selection}***:\n> {', '.join(sorted_words)}")
 
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ Error calling the API: `{e}`")
+    except json.JSONDecodeError:
+        await ctx.send(f"⚠️ Unexpected response format from API for *{selection}*.")
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
@@ -680,6 +686,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
