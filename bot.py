@@ -99,7 +99,7 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
-# === Word definition lookup (final version) ===
+# === Word definition lookup ===
 @bot.command(name="define")
 async def define_word(ctx, *, term: str):
     """
@@ -107,7 +107,6 @@ async def define_word(ctx, *, term: str):
     Usage: !define <word>
     """
     try:
-        # Use the Discord username as the IP value
         user_identifier = ctx.author.name
         url = f"https://focaltools.azurewebsites.net/api/define/{term}?ip={user_identifier}"
         
@@ -115,33 +114,30 @@ async def define_word(ctx, *, term: str):
         response.raise_for_status()
         data = response.text.strip()
 
-        definition = None
-
-        # Case 1: XML response with <string> tags
+        # Extract text whether XML or plain
         if "<string" in data and "</string>" in data:
             start = data.find(">") + 1
             end = data.rfind("</string>")
             definition = data[start:end].strip()
-        # Case 2: Plain text response
-        elif data:
+        else:
             definition = data
 
-        # Normalize the text for comparison
-        if definition:
-            normalized = definition.strip().upper()
+        # Normalize for comparison
+        normalized = definition.strip().upper()
 
-            # Handle special responses
-            if normalized == "DEFINITION NOT FOUND":
-                await ctx.send(f"ℹ️ No definition found for **{term.upper()}**.")
-                return
-            elif normalized == "INVALID":
-                await ctx.send(f"❌ **{term.upper()}** is invalid.")
-                return
-
-            # Otherwise, send the real definition
-            await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
-        else:
+        # Handle known non-definition responses
+        if normalized == "DEFINITION NOT FOUND":
+            await ctx.send(f"ℹ️ No definition found for **{term.upper()}**.")
+            return
+        elif normalized == "INVALID":
+            await ctx.send(f"❌ **{term.upper()}** is not a valid word.")
+            return
+        elif not definition:
             await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
+            return
+
+        # Otherwise, send the valid definition
+        await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
 
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
@@ -673,6 +669,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
