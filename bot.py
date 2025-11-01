@@ -1,18 +1,20 @@
 import os
 import random
-import discord
+import re
 import json
 import requests
-import re
+import urllib.parse
 import asyncio
 import xml.etree.ElementTree as ET
-os.environ["DISCORD_NO_AUDIO"] = "1"
+
+import discord
 from discord.ext import commands
+import aiohttp
+
 from numbers_solver import solve_numbers
 from parser import parse_numbers_solution
-import aiohttp
-from discord.ext import commands
-import xml.etree.ElementTree as ET
+
+os.environ["DISCORD_NO_AUDIO"] = "1"
 
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
@@ -59,10 +61,6 @@ async def maxes(ctx, *, selection: str):
     Finds the longest possible words from the given selection using the FocalTools API.
     Usage: !maxes <letters> (supports up to two '*' wildcards)
     """
-    import requests
-    import urllib.parse
-    import json
-    import re
 
     selection = selection.strip().upper()
 
@@ -102,16 +100,13 @@ async def maxes(ctx, *, selection: str):
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
 
+
+
 @bot.command(name="define")
 async def define(ctx, *, word: str = None):
     """Look up the definition of a word using FocalTools API."""
 
-    import requests
-    import urllib.parse
-    import xml.etree.ElementTree as ET
-    import re
-
-    # Validation: single word, letters A-Z only
+    # Validate input: single word, letters A-Z
     if not word or not re.fullmatch(r"[A-Za-z]+", word.strip()):
         await ctx.send("⚠️ Query must be a single word containing only A-Z.")
         return
@@ -124,23 +119,21 @@ async def define(ctx, *, word: str = None):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
 
-        # Parse XML
-        try:
-            root = ET.fromstring(response.text)
-            definition = root.text.strip() if root.text else ""
+        # Strip namespace from XML
+        xml_text = re.sub(r'xmlns="[^"]+"', '', response.text, count=1)
+        root = ET.fromstring(xml_text)
+        definition = root.text.strip() if root.text else ""
 
-            if definition.upper() == "INVALID":
-                await ctx.send(f"**{word}**: ❌ INVALID")
-            elif definition.upper() == "DEFINITION NOT FOUND":
-                await ctx.send(f"**{word}**: No definition found for this word")
-            else:
-                await ctx.send(f"**{word}**: {definition}")
-
-        except ET.ParseError:
-            await ctx.send(f"**{word}**: ⚠️ Could not parse response from API.")
+        if definition.upper() == "INVALID":
+            await ctx.send(f"**{word}**: ❌ INVALID")
+        elif definition.upper() == "DEFINITION NOT FOUND":
+            await ctx.send(f"**{word}**: No definition found for this word")
+        else:
+            await ctx.send(f"**{word}**: {definition}")
 
     except Exception as e:
         await ctx.send(f"**{word}**: ⚠️ Could not process request — `{e}`")
+
 
 
 @bot.command(name="selection")
@@ -483,7 +476,6 @@ async def dump_scores_file(ctx):
 # === Numbers Game (numbers-bot channel only) ===
 async def new_numbers_round(channel):
     """Generate and post a random solvable numbers puzzle with emoji formatting."""
-    import random
 
     # Emoji map for all valid Countdown numbers
     emoji_map = {
@@ -668,6 +660,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
