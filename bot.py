@@ -115,6 +115,10 @@ async def define(ctx, *, word: str = None):
     user_identifier = urllib.parse.quote(ctx.author.name)
     url = f"https://focaltools.azurewebsites.net/api/define/{word}?ip={user_identifier}"
 
+    response = requests.get(url, timeout=10)
+    print("RAW RESPONSE:", repr(response.text))  # Debug line
+    response.raise_for_status()
+
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -660,6 +664,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
