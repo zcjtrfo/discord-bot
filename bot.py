@@ -202,7 +202,7 @@ async def solve(ctx, *, input_text: str):
     message_text = f"See all solutions in Quantum Tombola:"
 
     # Send message + URL separately in angle brackets to prevent preview
-    await ctx.send(f"{message_text}\n<{url}>"
+    await ctx.send(f"{message_text}\n<{url}>")
 
 
 @bot.command(name="selection")
@@ -729,6 +729,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
