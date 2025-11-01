@@ -99,7 +99,39 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
+# === Word definition lookup ===
+@bot.command(name="define")
+async def define_word(ctx, *, term: str):
+    """
+    Retrieves the definition of a word using the FocalTools API.
+    Usage: !define <word>
+    """
+    try:
+        # Use the Discord username as the IP value
+        user_identifier = ctx.author.name
+        url = f"https://focaltools.azurewebsites.net/api/define/{term}?ip={user_identifier}"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.text.strip()
 
+        # Extract the definition text from the XML response
+        if "<string" in data and "</string>" in data:
+            # Remove XML tags
+            start = data.find(">") + 1
+            end = data.rfind("</string>")
+            definition = data[start:end].strip()
+
+            # Send formatted message
+            if definition:
+                await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
+            else:
+                await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
+        else:
+            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
+
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ Error calling the API: `{e}`")
 
 
 @bot.command(name="selection")
@@ -626,6 +658,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
