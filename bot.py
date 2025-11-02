@@ -164,21 +164,21 @@ async def define_word(ctx, *, term: str):
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
 
-# === Quantum Tombola solver link (no preview) + example solution ===
+# === Quantum Tombola solver link (no preview) + solution info ===
 @bot.command(name="solve")
 async def solve(ctx, *, input_text: str):
     """
     Generates a link to Quantum Tombola solutions and shows one example if possible.
-    Usage: !solve <num1> <num2> ... <num7> <target>
+    Usage: !solve <num1> <num2> ... <num6> <target>
     """
 
     # Split input by spaces
     parts = input_text.strip().split()
 
-    # Validate: at least 3 numbers (2 selection + 1 target), up to 8 (7 selection + 1 target)
-    if len(parts) < 3 or len(parts) > 8:
+    # Validate: at least 3 numbers (2–6 selections + 1 target)
+    if len(parts) < 3 or len(parts) > 7:
         await ctx.send(
-            "⚠️ Invalid input. Please provide **at least 2 selection numbers** followed by **1 target number**, up to 7 selections.\n"
+            "⚠️ Invalid input. Please provide **between 2 and 6 selection numbers** followed by **1 target number**.\n"
             "Example: `!solve 100 75 50 25 6 3 952`"
         )
         return
@@ -193,22 +193,33 @@ async def solve(ctx, *, input_text: str):
     target = int(target)
     selection = [int(n) for n in selection_numbers]
 
-    # Construct URL
-    selection_param = "-".join(selection_numbers)
-    url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(str(target))}"
-
-    # Construct message text
-    message_text = f"See all solutions in Quantum Tombola:"
-    await ctx.send(f"{message_text}\n<{url}>")
-
-    # Try to find one example solution
     try:
+        # Try to find one example solution first
         solutions = solve_numbers(target, selection)
-        if solutions and solutions.get("difference") == 0 and solutions.get("results"):
+        message_lines = []
+
+        if solutions and solutions.get("results"):
             sol = solutions["results"][0][1]
-            await ctx.send(f"💡 A possible solution was: `{sol}`")
+            diff = solutions.get("difference", None)
+
+            if diff == 0:
+                message_lines.append(f"💡 A possible solution is: `{sol}`")
+            else:
+                message_lines.append(f"💡 The closest is **{diff}** away. A possible solution is: `{sol}`")
+        else:
+            message_lines.append("⚠️ No solutions found.")
+
     except Exception as e:
         await ctx.send(f"⚠️ Could not generate example solution — `{e}`")
+        return
+
+    # Construct URL + link text
+    selection_param = "-".join(selection_numbers)
+    url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(str(target))}"
+    message_lines.append(f"See all solutions in Quantum Tombola:\n<{url}>")
+
+    # Send both messages together, in the correct order
+    await ctx.send("\n".join(message_lines))
 
 
 @bot.command(name="selection")
@@ -735,6 +746,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
