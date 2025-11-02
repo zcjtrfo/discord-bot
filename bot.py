@@ -163,14 +163,12 @@ async def define_word(ctx, *, term: str):
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
-import re
-import urllib.parse
 
-# === Quantum Tombola solver link (no preview) ===
+# === Quantum Tombola solver link (no preview) + example solution ===
 @bot.command(name="solve")
 async def solve(ctx, *, input_text: str):
     """
-    Generates a link to Quantum Tombola solutions.
+    Generates a link to Quantum Tombola solutions and shows one example if possible.
     Usage: !solve <num1> <num2> ... <num7> <target>
     """
 
@@ -192,17 +190,25 @@ async def solve(ctx, *, input_text: str):
 
     # Split selection and target
     *selection_numbers, target = parts
+    target = int(target)
+    selection = [int(n) for n in selection_numbers]
 
     # Construct URL
     selection_param = "-".join(selection_numbers)
-    url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(target)}"
+    url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(str(target))}"
 
     # Construct message text
-    selection_text = " ".join(selection_numbers)
     message_text = f"See all solutions in Quantum Tombola:"
-
-    # Send message + URL separately in angle brackets to prevent preview
     await ctx.send(f"{message_text}\n<{url}>")
+
+    # Try to find one example solution
+    try:
+        solutions = solve_numbers(target, selection)
+        if solutions and solutions.get("difference") == 0 and solutions.get("results"):
+            sol = solutions["results"][0][1]
+            await ctx.send(f"💡 A possible solution was: `{sol}`")
+    except Exception as e:
+        await ctx.send(f"⚠️ Could not generate example solution — `{e}`")
 
 
 @bot.command(name="selection")
@@ -729,6 +735,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
