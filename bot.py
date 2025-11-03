@@ -30,7 +30,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# === Word validity check with history lookup ===
+# === Word validity check with historical info ===
 @bot.command(name="check")
 async def check_word(ctx, *, term: str):
     """
@@ -47,7 +47,7 @@ async def check_word(ctx, *, term: str):
         response.raise_for_status()
         data = response.text.strip().lower()
 
-        # === Step 2: Prepare word + file lookup helper ===
+        # === Step 2: Lookup helper ===
         word = term.strip().upper()
 
         def lookup_history(filename, word):
@@ -63,7 +63,7 @@ async def check_word(ctx, *, term: str):
             return None
 
         def format_history_message(date_str, valid=True):
-            """Interpret the date string and return a nicely formatted sentence."""
+            """Interpret the date string and return a formatted sentence."""
             if not date_str:
                 return (
                     "I can't find a record of when this word became valid; it was probably very recently added."
@@ -71,11 +71,17 @@ async def check_word(ctx, *, term: str):
                     else "I can't find a record of this word being removed; it may never have been valid."
                 )
 
-            # Exact date format: dd/mm/yy
+            # === Special dictionary events ===
+            if not valid:
+                if re.search(r"06/2016", date_str):
+                    return "This word was removed in the Great OED Variant Cull of June 2016."
+                if re.search(r"08/2024", date_str):
+                    return "This word was removed in the Great Dictionary Reset of August 2024."
+
+            # === Exact date format: dd/mm/yy or dd/mm/yyyy ===
             m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{2,4})", date_str)
             if m:
                 day, month, year = map(int, m.groups())
-                # Handle 2-digit year (assume 2000s)
                 if year < 100:
                     year += 2000
                 month_name = datetime.date(year, month, 1).strftime("%B")
@@ -84,7 +90,7 @@ async def check_word(ctx, *, term: str):
                 else:
                     return f"This word was removed in {month_name} {year}."
 
-            # Between years format: between 2006 - 2012
+            # === Between years format: between 2006 - 2012 ===
             m = re.match(r"between\s+(\d{4})\s*[-–]\s*(\d{4})", date_str, re.IGNORECASE)
             if m:
                 y1, y2 = m.groups()
@@ -93,17 +99,17 @@ async def check_word(ctx, *, term: str):
                 else:
                     return f"This word was removed sometime between {y1} and {y2}."
 
-            # Pre-2006 or similar
+            # === Pre-2006 ===
             if re.match(r"pre[-–]?\s*2006", date_str, re.IGNORECASE):
                 if valid:
                     return "This word has likely always been valid."
                 else:
                     return "This word was removed before 2006."
 
-            # Default fallback
+            # Fallback
             return f"(Unrecognized date format: {date_str})"
 
-        # === Step 3: Parse API response and show history ===
+        # === Step 3: Parse API response and show message ===
         if "true" in data:
             msg = f"✅ **{word}** is **VALID**"
             date_info = lookup_history("history_valid.txt", word)
@@ -813,6 +819,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
