@@ -5,6 +5,7 @@ import json
 import requests
 import urllib.parse
 import asyncio
+import datetime
 import xml.etree.ElementTree as ET
 
 import discord
@@ -29,29 +30,95 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# === Word validity check ===
+# === Word validity check with history lookup ===
 @bot.command(name="check")
 async def check_word(ctx, *, term: str):
     """
-    Checks whether a word is valid using the FocalTools API.
+    Checks whether a word is valid using the FocalTools API and reports its historical validity.
     Usage: !check <word>
     """
+
     try:
-        # Use the Discord username as the IP value
+        # === Step 1: Query API ===
         user_identifier = ctx.author.name
         url = f"https://focaltools.azurewebsites.net/api/checkword/{term}?ip={user_identifier}"
-        
+
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.text.strip().lower()
 
-        # Parse the XML boolean response
+        # === Step 2: Prepare word + file lookup helper ===
+        word = term.strip().upper()
+
+        def lookup_history(filename, word):
+            """Look up a word in the specified history file and return its associated date string."""
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    for line in f:
+                        parts = line.strip().split("\t")
+                        if len(parts) >= 2 and parts[0].strip().upper() == word:
+                            return parts[1].strip()
+            except FileNotFoundError:
+                return None
+            return None
+
+        def format_history_message(date_str, valid=True):
+            """Interpret the date string and return a nicely formatted sentence."""
+            if not date_str:
+                return (
+                    "I can't find a record of when this word became valid; it was probably very recently added."
+                    if valid
+                    else "I can't find a record of this word being removed; it may never have been valid."
+                )
+
+            # Exact date format: dd/mm/yy
+            m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{2,4})", date_str)
+            if m:
+                day, month, year = map(int, m.groups())
+                # Handle 2-digit year (assume 2000s)
+                if year < 100:
+                    year += 2000
+                month_name = datetime.date(year, month, 1).strftime("%B")
+                if valid:
+                    return f"This word has been valid since {month_name} {year}."
+                else:
+                    return f"This word was removed in {month_name} {year}."
+
+            # Between years format: between 2006 - 2012
+            m = re.match(r"between\s+(\d{4})\s*[-–]\s*(\d{4})", date_str, re.IGNORECASE)
+            if m:
+                y1, y2 = m.groups()
+                if valid:
+                    return f"This word became valid sometime between {y1} and {y2}."
+                else:
+                    return f"This word was removed sometime between {y1} and {y2}."
+
+            # Pre-2006 or similar
+            if re.match(r"pre[-–]?\s*2006", date_str, re.IGNORECASE):
+                if valid:
+                    return "This word has likely always been valid."
+                else:
+                    return "This word was removed before 2006."
+
+            # Default fallback
+            return f"(Unrecognized date format: {date_str})"
+
+        # === Step 3: Parse API response and show history ===
         if "true" in data:
-            await ctx.send(f"✅ **{term.upper()}** is **VALID**")
+            msg = f"✅ **{word}** is **VALID**"
+            date_info = lookup_history("history_valid.txt", word)
+            msg += "\n" + format_history_message(date_info, valid=True)
+            await ctx.send(msg)
+
         elif "false" in data:
-            await ctx.send(f"❌ **{term.upper()}** is **INVALID**")
+            msg = f"❌ **{word}** is **INVALID**"
+            date_info = lookup_history("history_invalid.txt", word)
+            msg += "\n" + format_history_message(date_info, valid=False)
+            await ctx.send(msg)
+
         else:
-            await ctx.send(f"⚠️ Unexpected response for **{term}**: `{data}`")
+            await ctx.send(f"⚠️ Unexpected response for **{word}**: `{data}`")
+
     except requests.exceptions.RequestException as e:
         await ctx.send(f"❌ Error calling the API: `{e}`")
 
@@ -746,6 +813,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
