@@ -39,17 +39,19 @@ async def check_word(ctx, *, term: str):
     """
 
     try:
-        # === Step 1: Query API ===
+        # === Step 1: Prepare word and call API ===
+        word = term.strip().upper()
         user_identifier = ctx.author.name
-        url = f"https://focaltools.azurewebsites.net/api/checkword/{term}?ip={user_identifier}"
+        url = f"https://focaltools.azurewebsites.net/api/checkword/{word}?ip={user_identifier}"
 
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.text.strip().lower()
 
-        # === Step 2: Lookup helper ===
-        word = term.strip().upper()
+        # === Step 2: If word is >9 letters, skip history lookup ===
+        skip_history = len(word) > 9
 
+        # === Step 3: Lookup helper functions ===
         def lookup_history(filename, word):
             """Look up a word in the specified history file and return its associated date string."""
             try:
@@ -109,17 +111,19 @@ async def check_word(ctx, *, term: str):
             # Fallback
             return f"(Unrecognized date format: {date_str})"
 
-        # === Step 3: Parse API response and show message ===
+        # === Step 4: Send response ===
         if "true" in data:
             msg = f"✅ **{word}** is **VALID**"
-            date_info = lookup_history("history_valid.txt", word)
-            msg += "\n" + format_history_message(date_info, valid=True)
+            if not skip_history:
+                date_info = lookup_history("history_valid.txt", word)
+                msg += "\n" + format_history_message(date_info, valid=True)
             await ctx.send(msg)
 
         elif "false" in data:
             msg = f"❌ **{word}** is **INVALID**"
-            date_info = lookup_history("history_invalid.txt", word)
-            msg += "\n" + format_history_message(date_info, valid=False)
+            if not skip_history:
+                date_info = lookup_history("history_invalid.txt", word)
+                msg += "\n" + format_history_message(date_info, valid=False)
             await ctx.send(msg)
 
         else:
@@ -819,6 +823,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
