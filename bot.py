@@ -186,7 +186,7 @@ async def maxes(ctx, *, selection: str):
 
 
 # === Word definition lookup (with input validation) ===
-@bot.command(name="define, aliases=["definition", "meaning"])
+@bot.command(name="define", aliases=["definition", "meaning"])
 async def define_word(ctx, *, term: str):
     """
     Retrieves the definition of a word using the FocalTools API.
@@ -827,6 +827,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
