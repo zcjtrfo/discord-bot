@@ -815,7 +815,7 @@ async def on_message(message):
             
                 # 🟢 Modify the message to include the correct answer
                 congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
-                await message.channel.send(f"{congrats} The answer is **{current[cid]}** ✅")
+                await message.channel.send(f"{congrats} The answer is **{current[cid]}**")
             
                 del current[cid]
                 await new_puzzle(message.channel)
@@ -832,6 +832,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
