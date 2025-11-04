@@ -720,58 +720,63 @@ async def on_message(message):
     if message.author.bot:
         return
 
-# --- NUMBERS CHANNELS (main + test) ---
-if message.channel.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
-    cid = message.channel.id
-    if cid in current_numbers and not message.content.startswith("!"):
-        guess = message.content.strip()
-        selection = current_numbers[cid]["selection"]
-        target = current_numbers[cid]["target"]
+    # --- NUMBERS CHANNELS (main + test) ---
+    if message.channel.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
+        cid = message.channel.id
+        if cid in current_numbers and not message.content.startswith("!"):
+            guess = message.content.strip()
+            selection = current_numbers[cid]["selection"]
+            target = current_numbers[cid]["target"]
+    
+            # 🟡 If user types "add..." (e.g. "add them up"), treat it as adding all numbers
+            if guess.lower().startswith("add"):
+                guess = "+".join(str(n) for n in selection)
 
-        # 🟡 If user types "add..." (e.g. "add them up"), treat it as adding all numbers
-        if guess.lower().startswith("add"):
-            guess = "+".join(str(n) for n in selection)
-
-        # User gives up
-        if guess.lower() in ["give up", "giveup"]:
-            sol = current_numbers[cid]["solution"]
-            await message.channel.send(f"💡 A possible solution was: `{sol}`")
-            await new_numbers_round(message.channel)
-            return
-
-        result = parse_numbers_solution(guess, selection)
-        if result is False:
-            return  # ignore invalid attempts
-
-        if cid not in numbers_locks:
-            numbers_locks[cid] = asyncio.Lock()
-
-        async with numbers_locks[cid]:
-            if cid not in current_numbers:
-                return  # already solved
-
-            if result == target:
-                user_id = str(message.author.id)
-                existing_data = scores.get(user_id, {})
-                name = message.author.display_name
-                con_score = existing_data.get("con_score", 0)
-                num_score = existing_data.get("num_score", 0) + 1
-
-                scores[user_id] = {
-                    "name": name,
-                    "con_score": con_score,
-                    "num_score": num_score,
-                }
-
-                with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(scores, f, indent=2)
-
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
-                await message.channel.send(f"{congrats}\n> `{guess}` = **{target}**")
-
-                del current_numbers[cid]
+            # 🟡 If user types "multiply..." or "times..." (e.g. "multiply them together" or "times them all"),
+            # treat it as multiplying all numbers in the selection
+            if guess.lower().startswith(("multiply", "times")):
+                guess = "x".join(str(n) for n in selection)
+    
+            # User gives up
+            if guess.lower() in ["give up", "giveup"]:
+                sol = current_numbers[cid]["solution"]
+                await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
                 return
+    
+            result = parse_numbers_solution(guess, selection)
+            if result is False:
+                return  # ignore invalid attempts
+    
+            if cid not in numbers_locks:
+                numbers_locks[cid] = asyncio.Lock()
+    
+            async with numbers_locks[cid]:
+                if cid not in current_numbers:
+                    return  # already solved
+    
+                if result == target:
+                    user_id = str(message.author.id)
+                    existing_data = scores.get(user_id, {})
+                    name = message.author.display_name
+                    con_score = existing_data.get("con_score", 0)
+                    num_score = existing_data.get("num_score", 0) + 1
+    
+                    scores[user_id] = {
+                        "name": name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                    }
+    
+                    with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                        json.dump(scores, f, indent=2)
+    
+                    congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
+                    await message.channel.send(f"{congrats}\n> `{guess}` = **{target}**")
+    
+                    del current_numbers[cid]
+                    await new_numbers_round(message.channel)
+                    return
 
     # --- CONUNDRUM CHANNELS (main + test) ---
     elif message.channel.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
@@ -827,6 +832,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
