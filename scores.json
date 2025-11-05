@@ -1,7 +1,7 @@
 {
   "928575866567528481": {
     "name": "TCap",
-    "con_score": 5693,
+    "con_score": 5778,
     "num_score": 507
   },
   "715299456987430932": {
@@ -11,13 +11,13 @@
   },
   "101704953986297856": {
     "name": "maus",
-    "con_score": 559,
+    "con_score": 564,
     "num_score": 30
   },
   "521210248367833089": {
     "name": "rob",
-    "con_score": 1013,
-    "num_score": 45
+    "con_score": 1039,
+    "num_score": 46
   },
   "418873868363759616": {
     "name": "jackjackhurst",
@@ -26,8 +26,8 @@
   },
   "630777176660377602": {
     "name": "Fiona T",
-    "con_score": 163,
-    "num_score": 240
+    "con_score": 172,
+    "num_score": 242
   },
   "1425530982039031970": {
     "name": "Livvy",
@@ -41,18 +41,18 @@
   },
   "657684986392084491": {
     "name": "Conor",
-    "con_score": 2332,
+    "con_score": 2342,
     "num_score": 54
   },
   "299569822348476417": {
     "name": "MonsieurMaestroni",
-    "con_score": 5553,
-    "num_score": 9
+    "con_score": 5558,
+    "num_score": 15
   },
   "212687527205666816": {
     "name": "RW",
-    "con_score": 468,
-    "num_score": 78
+    "con_score": 483,
+    "num_score": 85
   },
   "596398643548913758": {
     "name": "Ell",
@@ -66,18 +66,18 @@
   },
   "1430995876762882068": {
     "name": "Gabriel T",
-    "con_score": 254,
+    "con_score": 271,
     "num_score": 10
   },
   "630831348084506624": {
     "name": "GArmstrong97",
-    "con_score": 180,
-    "num_score": 411
+    "con_score": 185,
+    "num_score": 468
   },
   "1275469438291939401": {
     "name": "\ud83e\uded6\ud83e\uded6",
-    "con_score": 274,
-    "num_score": 333
+    "con_score": 282,
+    "num_score": 543
   },
   "1226291405656428667": {
     "name": "James Haughton",
@@ -87,12 +87,12 @@
   "1275423129543508060": {
     "name": "T Less",
     "con_score": 2,
-    "num_score": 1278
+    "num_score": 1291
   },
   "1279389556885684247": {
     "name": "Des",
-    "con_score": 134,
-    "num_score": 107
+    "con_score": 141,
+    "num_score": 113
   },
   "1029096745919057941": {
     "name": "ThomasGeorgios",
@@ -106,23 +106,23 @@
   },
   "1158462549847715850": {
     "name": "M3 (Andres)",
-    "con_score": 795,
+    "con_score": 824,
     "num_score": 32
   },
   "919315956365426708": {
     "name": "ross",
-    "con_score": 1188,
+    "con_score": 1219,
     "num_score": 0
   },
   "181371725106249728": {
     "name": "Dagon",
-    "con_score": 124,
+    "con_score": 130,
     "num_score": 9
   },
   "546110197807185921": {
     "name": "eagles123 (Rowland)",
-    "con_score": 70,
-    "num_score": 12
+    "con_score": 84,
+    "num_score": 13
   },
   "414142731775115264": {
     "name": "pasta_rogue",
@@ -136,7 +136,7 @@
   },
   "135525287138951168": {
     "name": "Matty",
-    "con_score": 264,
+    "con_score": 267,
     "num_score": 1
   },
   "655166080490143745": {
@@ -147,7 +147,7 @@
   "252857431791501314": {
     "name": "Miriam",
     "con_score": 9,
-    "num_score": 2
+    "num_score": 5
   },
   "763446611174096916": {
     "name": "Ethan",
@@ -156,13 +156,13 @@
   },
   "910100048925327360": {
     "name": "colint",
-    "con_score": 314,
-    "num_score": 360
+    "con_score": 367,
+    "num_score": 367
   },
   "634099505590960129": {
     "name": "Tom Finn",
-    "con_score": 57,
-    "num_score": 198
+    "con_score": 59,
+    "num_score": 224
   },
   "1027532403893358612": {
     "name": "Monarch",
@@ -176,13 +176,13 @@
   },
   "1077748681798864916": {
     "name": "quinn",
-    "con_score": 951,
+    "con_score": 972,
     "num_score": 0
   },
   "572184570561167361": {
     "name": "Charlie H.",
-    "con_score": 320,
-    "num_score": 62
+    "con_score": 346,
+    "num_score": 99
   },
   "628678296892342321": {
     "name": "graeme",
@@ -201,8 +201,8 @@
   },
   "742815728574529577": {
     "name": "Sam Cappleman-Lynes",
-    "con_score": 1511,
-    "num_score": 39
+    "con_score": 1630,
+    "num_score": 40
   },
   "234479369920315392": {
     "name": "JonPinyan",
@@ -216,7 +216,12 @@
   },
   "1434332462636335245": {
     "name": "Cameron S",
-    "con_score": 0,
+    "con_score": 6,
     "num_score": 1
+  },
+  "718408971312169031": {
+    "name": "Elwin",
+    "con_score": 59,
+    "num_score": 23
   }
 }
