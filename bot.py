@@ -725,17 +725,6 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current_numbers and not message.content.startswith("!"):
             guess = message.content.strip()
-            selection = current_numbers[cid]["selection"]
-            target = current_numbers[cid]["target"]
-    
-            # 🟡 If user types "add..." (e.g. "add them up"), treat it as adding all numbers
-            if guess.lower().startswith("add"):
-                guess = "+".join(str(n) for n in selection)
-
-            # 🟡 If user types "multiply..." or "times..." (e.g. "multiply them together" or "times them all"),
-            # treat it as multiplying all numbers in the selection
-            if guess.lower().startswith(("multiply", "times")):
-                guess = "x".join(str(n) for n in selection)
     
             # User gives up
             if guess.lower() in ["give up", "giveup"]:
@@ -744,39 +733,64 @@ async def on_message(message):
                 await new_numbers_round(message.channel)
                 return
     
+            selection = current_numbers[cid]["selection"]
+            target = current_numbers[cid]["target"]
+    
+            # 🟡 "Add" shorthand — e.g. "add them up"
+            if guess.lower().startswith("add"):
+                guess = "+".join(str(n) for n in selection)
+    
+            # 🟡 "Multiply"/"Times" shorthand — e.g. "multiply them" or "times them together"
+            elif guess.lower().startswith(("multiply", "times")):
+                guess = "x".join(str(n) for n in selection)
+    
+            # Evaluate the user’s attempt
             result = parse_numbers_solution(guess, selection)
             if result is False:
                 return  # ignore invalid attempts
     
-            if cid not in numbers_locks:
-                numbers_locks[cid] = asyncio.Lock()
+            # Ensure per-channel lock exists
+            numbers_locks.setdefault(cid, asyncio.Lock())
+    
+            # Capture data for use outside the lock
+            is_correct = False
+            winner_name = None
+            winner_id = None
+            chosen_congrats = None
+            chosen_guess = None
     
             async with numbers_locks[cid]:
                 if cid not in current_numbers:
                     return  # already solved
     
                 if result == target:
-                    user_id = str(message.author.id)
-                    existing_data = scores.get(user_id, {})
-                    name = message.author.display_name
+                    is_correct = True
+                    winner_id = str(message.author.id)
+                    winner_name = message.author.display_name
+    
+                    existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0)
                     num_score = existing_data.get("num_score", 0) + 1
     
-                    scores[user_id] = {
-                        "name": name,
+                    # Update in-memory scores and remove puzzle while holding the lock
+                    scores[winner_id] = {
+                        "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
                     }
     
-                    with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                        json.dump(scores, f, indent=2)
-    
-                    congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
-                    await message.channel.send(f"{congrats}\n> `{guess}` = **{target}**")
-    
+                    chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                    chosen_guess = guess
                     del current_numbers[cid]
-                    await new_numbers_round(message.channel)
-                    return
+    
+            # Outside the lock: save file, announce winner, start new round
+            if is_correct:
+                with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(scores, f, indent=2)
+    
+                await message.channel.send(f"{chosen_congrats}\n> `{chosen_guess}` = **{target}**")
+                await new_numbers_round(message.channel)
+                return
 
     # --- CONUNDRUM CHANNELS (main + test) ---
     elif message.channel.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
@@ -790,34 +804,46 @@ async def on_message(message):
                 await new_puzzle(message.channel)
                 return
 
-            if cid not in locks:
-                locks[cid] = asyncio.Lock()
+            # ensure lock exists
+            locks.setdefault(cid, asyncio.Lock())
+
+            # captureables for after-lock actions
+            is_correct = False
+            winner_id = None
+            winner_name = None
+            chosen_congrats = None
+            answer_text = None
 
             async with locks[cid]:
                 if cid not in current:
                     return  # already solved
 
-            if guess == current[cid].lower():
-                user_id = str(message.author.id)
-                existing_data = scores.get(user_id, {})
-                name = message.author.display_name
-                con_score = existing_data.get("con_score", 0) + 1
-                num_score = existing_data.get("num_score", 0)
-            
-                scores[user_id] = {
-                    "name": name,
-                    "con_score": con_score,
-                    "num_score": num_score,
-                }
-            
+                if guess == current[cid].lower():
+                    is_correct = True
+                    winner_id = str(message.author.id)
+                    winner_name = message.author.display_name
+
+                    existing_data = scores.get(winner_id, {})
+                    con_score = existing_data.get("con_score", 0) + 1
+                    num_score = existing_data.get("num_score", 0)
+
+                    # update in-memory scores and remove puzzle while holding the lock
+                    scores[winner_id] = {
+                        "name": winner_name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                    }
+
+                    chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                    answer_text = current[cid]
+                    del current[cid]
+
+            # outside lock: persist + notify + new puzzle
+            if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-            
-                # 🟢 Modify the message to include the correct answer
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=message.author.display_name)
-                await message.channel.send(f"{congrats} The answer is **{current[cid]}**")
-            
-                del current[cid]
+
+                await message.channel.send(f"{chosen_congrats} The answer is **{answer_text}**")
                 await new_puzzle(message.channel)
                 return
 
@@ -832,6 +858,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
