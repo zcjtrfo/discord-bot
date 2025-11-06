@@ -432,13 +432,13 @@ SCRAMBLE_MESSAGES = [
     "Next conundrum: **{scrambled}**",
     "Try this one: **{scrambled}**",
     "Let's see if you can get this! **{scrambled}**",
-    "Here's your next Countdown Conundrum: **{scrambled}**",
-    "A new Countdown Conundrum awaits: **{scrambled}**",
+    "Here's your next conundrum: **{scrambled}**",
+    "A new conundrum awaits: **{scrambled}**",
     "Can you solve this conundrum? **{scrambled}**",
     "Here's a tricky one: **{scrambled}**",
-    "Please reveal today's Countdown Conundrum: **{scrambled}**",
+    "Please reveal today's conundrum: **{scrambled}**",
     "Fingers on buzzers: **{scrambled}**",
-    "Quiet please, for the Countdown Conundrum: **{scrambled}**",
+    "Quiet please, for the conundrum: **{scrambled}**",
 ]
 
 # === Active puzzles per channel/thread ===
@@ -580,10 +580,10 @@ async def leaderboard(ctx):
     # Determine which leaderboard to show
     if channel_id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
         key = "con_score"
-        title = "🏆 Countdown Conundrum Leaderboard"
+        title = "🏆 Conundrum Leaderboard"
     elif channel_id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
         key = "num_score"
-        title = "🔢 Countdown Numbers Leaderboard"
+        title = "🔢 Numbers Leaderboard"
     else:
         await ctx.send("⚠️ This command can only be used in the Conundrum or Numbers channels.")
         return
@@ -858,6 +858,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
