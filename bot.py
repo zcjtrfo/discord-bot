@@ -13,8 +13,7 @@ from discord.ext import commands
 import aiohttp
 
 from numbers_solver import solve_numbers
-from parser import parse_numbers_solution
-from parser import normalize_expression
+from parser import parse_numbers_solution, normalize_expression
 
 os.environ["DISCORD_NO_AUDIO"] = "1"
 
@@ -730,7 +729,7 @@ async def on_message(message):
             guess = message.content.strip()
     
             # User gives up
-            if guess.lower() in ["give up", "giveup", "skip", "next"]:
+            if guess.lower() in ["give up", "giveup"]:
                 sol = current_numbers[cid]["solution"]
                 await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
@@ -747,10 +746,10 @@ async def on_message(message):
             elif guess.lower().startswith(("multiply", "times")):
                 guess = "x".join(str(n) for n in selection)
 
-            # ✅ Normalize before parsing
+            # ✅ Normalize before evaluation and for display
             normalized_guess = normalize_expression(guess)
     
-            # Evaluate the user’s attempt using the normalized version
+            # Evaluate the user’s attempt
             result = parse_numbers_solution(normalized_guess, selection)
             if result is False:
                 return  # ignore invalid attempts
@@ -758,6 +757,7 @@ async def on_message(message):
             # Ensure per-channel lock exists
             numbers_locks.setdefault(cid, asyncio.Lock())
     
+            # Capture data for use outside the lock
             is_correct = False
             winner_name = None
             winner_id = None
@@ -785,14 +785,15 @@ async def on_message(message):
                     }
     
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-                    chosen_guess = normalized_guess  # ✅ Display normalized version
+                    chosen_guess = normalized_guess  # ✅ display normalized version
                     del current_numbers[cid]
     
+            # Outside the lock: save file, announce winner, start new round
             if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
     
-                # ✅ Show normalized version in output
+                # ✅ Normalized version displayed here
                 await message.channel.send(f"{chosen_congrats}\n> `{chosen_guess}` = **{target}**")
                 await new_numbers_round(message.channel)
                 return
@@ -863,6 +864,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
