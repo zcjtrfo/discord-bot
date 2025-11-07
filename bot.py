@@ -949,7 +949,8 @@ async def on_message(message):
                 return
 
     # --- LETTERS CHANNELS (main + test) ---
-    elif cid in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
+    elif message.channel.id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
+        cid = message.channel.id
         if cid in current_letters and not message.content.startswith("!"):
             guess = message.content.strip().upper()
 
@@ -1015,6 +1016,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
