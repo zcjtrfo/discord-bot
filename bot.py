@@ -20,7 +20,7 @@ os.environ["DISCORD_NO_AUDIO"] = "1"
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
 NUMBERS_CHANNEL_ID = 1431380518179573911
-LETTERS_CHANNEL_ID = 1000000000000000000
+LETTERS_CHANNEL_ID = 1436454594224849016
 
 # ✅ Test channels
 TEST_GENERAL_CHANNEL_ID = 1424857126878052413
@@ -1015,6 +1015,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
