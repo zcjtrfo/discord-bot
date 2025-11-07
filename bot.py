@@ -14,6 +14,7 @@ import aiohttp
 
 from numbers_solver import solve_numbers
 from parser import parse_numbers_solution
+from parser import normalize_expression
 
 os.environ["DISCORD_NO_AUDIO"] = "1"
 
@@ -729,7 +730,7 @@ async def on_message(message):
             guess = message.content.strip()
     
             # User gives up
-            if guess.lower() in ["give up", "giveup"]:
+            if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 sol = current_numbers[cid]["solution"]
                 await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
@@ -745,16 +746,18 @@ async def on_message(message):
             # 🟡 "Multiply"/"Times" shorthand — e.g. "multiply them" or "times them together"
             elif guess.lower().startswith(("multiply", "times")):
                 guess = "x".join(str(n) for n in selection)
+
+            # ✅ Normalize before parsing
+            normalized_guess = normalize_expression(guess)
     
-            # Evaluate the user’s attempt
-            result = parse_numbers_solution(guess, selection)
+            # Evaluate the user’s attempt using the normalized version
+            result = parse_numbers_solution(normalized_guess, selection)
             if result is False:
                 return  # ignore invalid attempts
     
             # Ensure per-channel lock exists
             numbers_locks.setdefault(cid, asyncio.Lock())
     
-            # Capture data for use outside the lock
             is_correct = False
             winner_name = None
             winner_id = None
@@ -774,7 +777,7 @@ async def on_message(message):
                     con_score = existing_data.get("con_score", 0)
                     num_score = existing_data.get("num_score", 0) + 1
     
-                    # Update in-memory scores and remove puzzle while holding the lock
+                    # Update in-memory scores
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
@@ -782,14 +785,14 @@ async def on_message(message):
                     }
     
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-                    chosen_guess = guess
+                    chosen_guess = normalized_guess  # ✅ Display normalized version
                     del current_numbers[cid]
     
-            # Outside the lock: save file, announce winner, start new round
             if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
     
+                # ✅ Show normalized version in output
                 await message.channel.send(f"{chosen_congrats}\n> `{chosen_guess}` = **{target}**")
                 await new_numbers_round(message.channel)
                 return
@@ -800,7 +803,7 @@ async def on_message(message):
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
 
-            if guess in ["give up", "giveup"]:
+            if guess in ["give up", "giveup", "skip", "next"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
@@ -860,6 +863,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
