@@ -805,7 +805,7 @@ async def new_letters_round(channel):
         }
 
         emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in selection_str)
-        await channel.send(f":game_die: New Letters Round!\n>{emoji_output}<")
+        await channel.send(f"Find the longest word from this letters selection:\n>{emoji_output}<")
 
     except Exception as e:
         await channel.send(f"❌ Error fetching maxes: `{e}`")
@@ -1000,8 +1000,12 @@ async def on_message(message):
             if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-
-                await message.channel.send(f"{chosen_congrats} The word **{guess}** is one of the maxes!")
+            
+                # Format the maxes
+                max_words = current_letters[cid]["maxes"]
+                formatted_maxes = ", ".join(f"**{w}**" for w in sorted(max_words))
+            
+                await message.channel.send(f"{chosen_congrats} 💡 The maxes were: {formatted_maxes}")
                 await new_letters_round(message.channel)
                 return
 
@@ -1016,6 +1020,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
