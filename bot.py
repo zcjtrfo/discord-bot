@@ -953,7 +953,7 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current_letters and not message.content.startswith("!"):
             guess = message.content.strip().upper()
-
+    
             # Handle give up
             if guess.lower() in ["give up", "giveup"]:
                 maxes = current_letters[cid]["maxes"]
@@ -961,51 +961,55 @@ async def on_message(message):
                 await message.channel.send(f"💡 Max words were: {formatted}")
                 await new_letters_round(message.channel)
                 return
-
+    
             # Ensure lock exists
             letters_locks.setdefault(cid, asyncio.Lock())
-
+    
             # local vars for outside lock actions
             is_correct = False
             winner_id = None
             winner_name = None
             chosen_congrats = None
             selection = None
-
+            max_words = None  # capture here
+    
             async with letters_locks[cid]:
                 if cid not in current_letters:
                     return
-
+    
                 if guess in current_letters[cid]["maxes"]:
                     is_correct = True
                     winner_id = str(message.author.id)
                     winner_name = message.author.display_name
                     selection = current_letters[cid]["selection"]
-
+    
                     existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0)
                     num_score = existing_data.get("num_score", 0)
                     let_score = existing_data.get("let_score", 0) + 1
-
+    
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
                         "let_score": let_score,
                     }
-
+    
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+    
+                    # capture maxes before deletion
+                    max_words = current_letters[cid]["maxes"].copy()
                     del current_letters[cid]
-
+    
             if is_correct:
+                # persist scores
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-            
-                # Format the maxes
-                max_words = current_letters[cid]["maxes"]
+    
+                # Format and send captured maxes
                 formatted_maxes = ", ".join(f"**{w}**" for w in sorted(max_words))
-            
                 await message.channel.send(f"{chosen_congrats} 💡 The maxes were: {formatted_maxes}")
+    
                 await new_letters_round(message.channel)
                 return
 
@@ -1020,6 +1024,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
