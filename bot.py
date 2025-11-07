@@ -20,11 +20,13 @@ os.environ["DISCORD_NO_AUDIO"] = "1"
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
 NUMBERS_CHANNEL_ID = 1431380518179573911
+LETTERS_CHANNEL_ID = 1000000000000000000
 
 # ✅ Test channels
 TEST_GENERAL_CHANNEL_ID = 1424857126878052413
 TEST_CONUNDRUMS_CHANNEL_ID = 1433910612009816356
 TEST_NUMBERS_CHANNEL_ID = 1430278725739479153
+TEST_LETTERS_CHANNEL_ID = 1436448481182220328
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -446,8 +448,10 @@ SCRAMBLE_MESSAGES = [
 # === Active puzzles per channel/thread ===
 current = {} # conundrums
 current_numbers = {}  # for the Numbers game
+current_letters = {}  # for the Letters game
 locks = {}              # for conundrum channels
 numbers_locks = {}      # for numbers channels
+letters_locks = {}      # for letters channels
 
 # === Leaderboard storage ===
 SCORES_FILE = "scores.json"
@@ -484,14 +488,16 @@ async def start_tests(ctx):
 
     test_conundrum_channel = bot.get_channel(TEST_CONUNDRUMS_CHANNEL_ID)
     test_numbers_channel = bot.get_channel(TEST_NUMBERS_CHANNEL_ID)
+    test_letters_channel = bot.get_channel(TEST_LETTERS_CHANNEL_ID)
 
     if test_conundrum_channel:
         await new_puzzle(test_conundrum_channel)
-        await test_conundrum_channel.send("🧩 Test Conundrum quiz started! Reply with your answers below.")
     if test_numbers_channel:
         await new_numbers_round(test_numbers_channel)
+    if test_letters_channel:
+        await new_letters_round(test_letters_channel)
 
-    await ctx.send("✅ Test quizzes started in #test_conundrums and #test_numbers.")
+    await ctx.send("✅ Test quizzes started in #test_conundrums and #test_numbers and #test_letters.")
 
 
 @bot.command(name="stop_tests")
@@ -516,59 +522,83 @@ async def stop_tests(ctx):
         if ch:
             await ch.send("🛑 Test Numbers quiz stopped.")
 
-    await ctx.send("✅ Test quizzes stopped in #test_conundrums and #test_numbers.")
+    # Stop test letters
+    if TEST_LETTERS_CHANNEL_ID in current_letters:
+        del current_letters[TEST_LETTERS_CHANNEL_ID]
+        ch = bot.get_channel(TEST_LETTERS_CHANNEL_ID)
+        if ch:
+            await ch.send("🛑 Test Letters quiz stopped.")
+
+    await ctx.send("✅ Test quizzes stopped in #test_conundrums and #test_numbers and #test_letters.")
 
 
 @bot.command(name="start_bots")
 @commands.has_permissions(manage_messages=True)
 async def start_bots(ctx):
-    """Start all bots (conundrums + numbers) across all channels from test_general."""
+    """Start all bots (conundrums + numbers + letters) across all channels from #test_general."""
     if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
         await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    # All four channels
+    # All quiz channels (main + test)
     all_channels = [
         bot.get_channel(CONUNDRUM_CHANNEL_ID),
         bot.get_channel(TEST_CONUNDRUMS_CHANNEL_ID),
         bot.get_channel(NUMBERS_CHANNEL_ID),
         bot.get_channel(TEST_NUMBERS_CHANNEL_ID),
+        bot.get_channel(LETTERS_CHANNEL_ID),
+        bot.get_channel(TEST_LETTERS_CHANNEL_ID),
     ]
 
     for ch in all_channels:
-        if ch:
-            if ch.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
-                await new_puzzle(ch)
-                await ch.send("🧩 Conundrum quiz started! Reply with your answers below.")
-            elif ch.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
-                await new_numbers_round(ch)
-    await ctx.send("✅ All bots started in all quiz channels.")
+        if not ch:
+            continue
 
+        # 🧩 Conundrum Channels
+        if ch.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
+            await new_puzzle(ch)
+            await ch.send("🧩 Conundrum quiz started! Reply with your answers below.")
+
+        # 🔢 Numbers Channels
+        elif ch.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
+            await new_numbers_round(ch)
+            await ch.send("🔢 Numbers quiz started! Solve the target!")
+
+        # 🔤 Letters Channels
+        elif ch.id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
+            await new_letters_round(ch)
+            await ch.send("🔤 Letters quiz started! Type the longest word!")
+
+    await ctx.send("✅ All bots (Conundrum, Numbers, Letters) started in all quiz channels.")
 
 @bot.command(name="stop_bots")
 @commands.has_permissions(manage_messages=True)
 async def stop_bots(ctx):
-    """Stop all bots (conundrums + numbers) across all channels from test_general."""
+    """Stop all bots (conundrums + numbers + letters) across all channels from #test_general."""
     if ctx.channel.id != TEST_GENERAL_CHANNEL_ID:
         await ctx.send("⚠️ This command can't be used in this channel.")
         return
 
-    # Stop all current quizzes
+    # Stop all active rounds
     for cid in list(current.keys()):
         del current[cid]
     for cid in list(current_numbers.keys()):
         del current_numbers[cid]
+    for cid in list(current_letters.keys()):
+        del current_letters[cid]
 
-    # Inform the channels
+    # Notify all channels
     for ch_id in [
         CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID,
-        NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID
+        NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID,
+        LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID,
     ]:
         ch = bot.get_channel(ch_id)
         if ch:
             await ch.send("🛑 Quiz has been temporarily stopped.")
 
-    await ctx.send("✅ All bots stopped across all quiz channels.")
+    await ctx.send("✅ All bots (Conundrum, Numbers, Letters) stopped across all quiz channels.")
+
 
 @bot.command(name="points", aliases=["leaderboard", "score", "scores"])
 async def leaderboard(ctx):
@@ -586,6 +616,9 @@ async def leaderboard(ctx):
     elif channel_id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
         key = "num_score"
         title = "🔢 Numbers Leaderboard"
+    elif channel_id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
+        key = "let_score"
+        title = "🔤 Countdown Letters Leaderboard"
     else:
         await ctx.send("⚠️ This command can only be used in the Conundrum or Numbers channels.")
         return
@@ -716,6 +749,66 @@ async def new_numbers_round(channel):
             )
             break
 
+# === Letters Game (letters-bot channel only) ===
+cons = {
+    'B':2,'C':3,'D':6,'F':2,'G':4,'H':2,'J':1,'K':1,'L':5,'M':4,'N':8,
+    'P':4,'Q':1,'R':9,'S':9,'T':9,'V':2,'W':2,'X':1,'Y':1,'Z':1
+}
+vows = {'A':15,'E':20,'I':13,'O':13,'U':7}
+
+def draw_letters():
+    n_vowels = random.choice([3, 4, 5])
+    n_cons = 9 - n_vowels
+
+    def draw(deck, count):
+        pool = [ltr for ltr, freq in deck.items() for _ in range(freq)]
+        chosen = []
+        prev = None
+        for _ in range(count):
+            while True:
+                pick = random.choice(pool)
+                if pick == prev:
+                    pick2 = random.choice(pool)
+                    if pick2 != pick:
+                        pick = pick2
+                chosen.append(pick)
+                prev = pick
+                break
+        return chosen
+
+    vowels = draw(vows, n_vowels)
+    consonants = draw(cons, n_cons)
+    selection = vowels + consonants
+    random.shuffle(selection)
+    return selection
+
+async def new_letters_round(channel):
+    """Generate and post a random letters puzzle."""
+    selection = draw_letters()
+    selection_str = "".join(selection)
+    user_identifier = urllib.parse.quote("lettersbot")
+
+    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection_str}?ip={user_identifier}"
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        words = json.loads(response.text)
+        if not words:
+            await channel.send(f"⚠️ No valid words found for `{selection_str}`. Retrying...")
+            await new_letters_round(channel)
+            return
+
+        current_letters[channel.id] = {
+            "selection": selection_str,
+            "maxes": [w.upper() for w in words]
+        }
+
+        emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in selection_str)
+        await channel.send(f":game_die: New Letters Round!\n>{emoji_output}<")
+
+    except Exception as e:
+        await channel.send(f"❌ Error fetching maxes: `{e}`")
 
 @bot.event
 async def on_message(message):
@@ -776,12 +869,13 @@ async def on_message(message):
                     existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0)
                     num_score = existing_data.get("num_score", 0) + 1
-    
-                    # Update in-memory scores
+                    let_score = existing_data.get("let_score", 0)
+
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
+                        "let_score": let_score,
                     }
     
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
@@ -832,12 +926,13 @@ async def on_message(message):
                     existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0) + 1
                     num_score = existing_data.get("num_score", 0)
+                    let_score = existing_data.get("let_score", 0)
 
-                    # update in-memory scores and remove puzzle while holding the lock
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
+                        "let_score": let_score,
                     }
 
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
@@ -853,6 +948,62 @@ async def on_message(message):
                 await new_puzzle(message.channel)
                 return
 
+    # --- LETTERS CHANNELS (main + test) ---
+    if cid in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
+        if cid in current_letters and not message.content.startswith("!"):
+            guess = message.content.strip().upper()
+
+            # Handle give up
+            if guess.lower() in ["give up", "giveup"]:
+                maxes = current_letters[cid]["maxes"]
+                formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
+                await message.channel.send(f"💡 Max words were: {formatted}")
+                await new_letters_round(message.channel)
+                return
+
+            # Ensure lock exists
+            letters_locks.setdefault(cid, asyncio.Lock())
+
+            # local vars for outside lock actions
+            is_correct = False
+            winner_id = None
+            winner_name = None
+            chosen_congrats = None
+            selection = None
+
+            async with letters_locks[cid]:
+                if cid not in current_letters:
+                    return
+
+                if guess in current_letters[cid]["maxes"]:
+                    is_correct = True
+                    winner_id = str(message.author.id)
+                    winner_name = message.author.display_name
+                    selection = current_letters[cid]["selection"]
+
+                    existing_data = scores.get(winner_id, {})
+                    con_score = existing_data.get("con_score", 0)
+                    num_score = existing_data.get("num_score", 0)
+                    let_score = existing_data.get("let_score", 0) + 1
+
+                    scores[winner_id] = {
+                        "name": winner_name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                        "let_score": let_score,
+                    }
+
+                    chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                    del current_letters[cid]
+
+            if is_correct:
+                with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(scores, f, indent=2)
+
+                await message.channel.send(f"{chosen_congrats} The word **{guess}** is one of the maxes!")
+                await new_letters_round(message.channel)
+                return
+
     # Always allow commands to process
     await bot.process_commands(message)
 
@@ -864,6 +1015,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
