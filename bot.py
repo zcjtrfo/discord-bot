@@ -340,6 +340,8 @@ async def selection(ctx, *, args: str):
         await ctx.send("⚠️ Only numbers from [1,2,3,4,5,6,7,8,9,10,25,50,75,100] are allowed in the selection.")
         return
 
+    selection = list(reversed(selection))
+
     # Emoji maps
     emoji_map = {
         1: ":one:",
@@ -858,6 +860,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
