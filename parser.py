@@ -2,6 +2,35 @@ import ast
 import operator
 import re
 
+# --- Move normalize_expression to top level ---
+def normalize_expression(expr: str) -> str:
+    """
+    Normalize a math expression to a consistent, parseable form.
+    Handles alternate operators and removes whitespace.
+    """
+    expr = expr.lower()  # case-insensitive
+    replacements = {
+        "p": "+",
+        "+": "+",
+        "−": "-",
+        "-": "-",
+        "x": "*",
+        "×": "*",
+        "*": "*",
+        "÷": "/",
+        "/": "/",
+        "(": "(",
+        "[": "(",
+        "{": "(",
+        ")": ")",
+        "]": ")",
+        "}": ")"
+    }
+    normalized = "".join(replacements.get(ch, ch) for ch in expr)
+    normalized = re.sub(r"\s+", "", normalized)  # remove all spaces
+    return normalized
+
+
 def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bool:
     """
     Validate and evaluate a Numbers game guess safely.
@@ -27,30 +56,6 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         ast.Mult: operator.mul,
         ast.Div: operator.truediv
     }
-
-    # Step 1: normalize all alternative math symbols and remove whitespace
-    def normalize_expression(expr: str) -> str:
-        expr = expr.lower()  # case-insensitive
-        replacements = {
-            "p": "+",
-            "+": "+",
-            "−": "-",
-            "-": "-",
-            "x": "*",
-            "×": "*",
-            "*": "*",
-            "÷": "/",
-            "/": "/",
-            "(": "(",
-            "[": "(",
-            "{": "(",
-            ")": ")",
-            "]": ")",
-            "}": ")"
-        }
-        normalized = "".join(replacements.get(ch, ch) for ch in expr)
-        normalized = re.sub(r"\s+", "", normalized)  # remove all spaces
-        return normalized
 
     def is_integer_value(x):
         return abs(x - round(x)) < 1e-9
@@ -91,10 +96,10 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         else:
             raise ValueError("Invalid expression component.")
 
-    # Step 2: normalize input
+    # Step 1: normalize input
     guess = normalize_expression(guess.strip())
 
-    # Step 3: extract used numbers
+    # Step 2: extract used numbers
     used_numbers = [
         int(n) for n in re.split(r"[+\-*/()]", guess) if n.strip().isdigit()
     ]
@@ -110,7 +115,7 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
         else:
             return False
 
-    # Step 4: parse and evaluate safely
+    # Step 3: parse and evaluate safely
     try:
         tree = ast.parse(guess, mode='eval')
         result = safe_eval(tree)
