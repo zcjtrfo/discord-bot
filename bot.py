@@ -729,7 +729,7 @@ async def on_message(message):
             guess = message.content.strip()
     
             # User gives up
-            if guess.lower() in ["give up", "giveup"]:
+            if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 sol = current_numbers[cid]["solution"]
                 await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
