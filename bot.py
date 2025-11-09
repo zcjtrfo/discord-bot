@@ -1050,7 +1050,7 @@ async def on_message(message):
     # Always allow commands to process
     await bot.process_commands(message)
 
-@tasks.loop(minutes=1)
+@tasks.loop(hours=24)
 async def dump_scores_daily():
     """Automatically dump scores every 24 hours."""
     await bot.wait_until_ready()  # ensure bot is logged in
@@ -1079,6 +1079,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
