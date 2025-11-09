@@ -39,16 +39,17 @@ async def check_word(ctx, *, term: str):
     Checks whether a word is valid using the FocalTools API and reports its historical validity.
     Usage: !check <word>
     """
-
     try:
         # === Step 1: Prepare word and call API ===
         word = term.strip().upper()
         user_identifier = ctx.author.name
         url = f"https://focaltools.azurewebsites.net/api/checkword/{word}?ip={user_identifier}"
 
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.text.strip().lower()
+        # --- Use aiohttp for non-blocking requests ---
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                data = (await response.text()).strip().lower()
 
         # === Step 2: If word is >9 letters, skip history lookup ===
         skip_history = len(word) > 9
@@ -131,8 +132,14 @@ async def check_word(ctx, *, term: str):
         else:
             await ctx.send(f"⚠️ Unexpected response for **{word}**: `{data}`")
 
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Error calling the API: `{e}`")
+    except asyncio.TimeoutError:
+        await ctx.send("⏳ The FocalTools API took too long to respond. Please try again in a moment.")
+
+    except aiohttp.ClientError as e:
+        await ctx.send(f"🌐 Network error contacting FocalTools API: `{e}`")
+
+    except Exception as e:
+        await ctx.send(f"❌ Unexpected error: `{e}`")
 
 # === Longest word finder ===
 @bot.command(name="maxes", aliases=["max"])
@@ -144,7 +151,7 @@ async def maxes(ctx, *, selection: str):
 
     selection = selection.strip().upper()
 
-    # ✅ Allow A–Z and up to 2 wildcard * characters
+    # ✅ Validate selection (A–Z and up to 2 wildcards)
     if not re.fullmatch(r"[A-Z\*]+", selection):
         await ctx.send("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
         return
@@ -153,7 +160,6 @@ async def maxes(ctx, *, selection: str):
         await ctx.send("⚠️ You can use a maximum of two '*' wildcards.")
         return
 
-    # ✅ Enforce total length ≤ 12 (including wildcards)
     if len(selection) > 12:
         await ctx.send("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
         return
@@ -162,27 +168,33 @@ async def maxes(ctx, *, selection: str):
     url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection}?ip={user_identifier}"
 
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
+        # --- Async non-blocking request ---
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                text = await response.text()
 
-        # Parse the JSON array response directly
-        words = json.loads(response.text)
+        # --- Parse JSON safely ---
+        words = json.loads(text)
 
         if not words:
             await ctx.send(f"⚠️ No words found for *{selection}*.")
             return
 
-        # Sort alphabetically and uppercase (just to be safe)
         sorted_words = sorted([w.upper() for w in words])
-
-        # ✅ Format the words in bold, and selection in italics
         formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
+
         await ctx.send(f":arrow_up: Maxes from *{selection}*: {formatted_words}")
 
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Error calling the API: `{e}`")
+    except asyncio.TimeoutError:
+        await ctx.send(f"⏳ Timeout fetching maxes for *{selection}*. Please try again.")
+
+    except aiohttp.ClientError as e:
+        await ctx.send(f"🌐 Network error contacting FocalTools API: `{e}`")
+
     except json.JSONDecodeError:
         await ctx.send(f"⚠️ Unexpected response format from API for *{selection}*.")
+
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
@@ -205,15 +217,17 @@ async def define_word(ctx, *, term: str):
         )
         return
 
-    try:
-        user_identifier = ctx.author.name
-        url = f"https://focaltools.azurewebsites.net/api/define/{term}?ip={user_identifier}"
-        
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.text.strip()
+    user_identifier = ctx.author.name
+    url = f"https://focaltools.azurewebsites.net/api/define/{term}?ip={user_identifier}"
 
-        # Extract text whether XML or plain
+    try:
+        # --- Async HTTP request using aiohttp ---
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                data = (await response.text()).strip()
+
+        # --- Extract text whether XML or plain ---
         if "<string" in data and "</string>" in data:
             start = data.find(">") + 1
             end = data.rfind("</string>")
@@ -221,11 +235,11 @@ async def define_word(ctx, *, term: str):
         else:
             definition = data
 
-        # Strip any surrounding quotes (e.g. "INVALID")
+        # --- Clean up formatting ---
         definition = definition.strip('"').strip("'").strip()
         normalized = definition.upper()
 
-        # Handle known non-definition responses
+        # --- Handle known response cases ---
         if normalized == "DEFINITION NOT FOUND":
             await ctx.send(f"ℹ️ No definition found for **{term.upper()}**.")
             return
@@ -236,11 +250,17 @@ async def define_word(ctx, *, term: str):
             await ctx.send(f"⚠️ No definition found for **{term.upper()}**.")
             return
 
-        # Otherwise, send the valid definition
+        # --- Send valid definition ---
         await ctx.send(f"📘 **Definition of {term.upper()}**:\n> {definition}")
 
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ Error calling the API: `{e}`")
+    except asyncio.TimeoutError:
+        await ctx.send("⏳ The dictionary service took too long to respond. Please try again later.")
+
+    except aiohttp.ClientError as e:
+        await ctx.send(f"🌐 Network error contacting dictionary API: `{e}`")
+
+    except Exception as e:
+        await ctx.send(f"❌ Unexpected error while fetching definition: `{e}`")
 
 
 # === Quantum Tombola solver link (no preview) + solution info ===
@@ -1037,6 +1057,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
