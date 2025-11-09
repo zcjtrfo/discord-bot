@@ -783,7 +783,7 @@ def draw_letters():
     return selection
 
 async def new_letters_round(channel):
-    """Generate and post a random letters puzzle."""
+    """Generate and post a random letters puzzle asynchronously."""
     selection = draw_letters()
     selection_str = "".join(selection)
     user_identifier = urllib.parse.quote("lettersbot")
@@ -791,24 +791,37 @@ async def new_letters_round(channel):
     url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection_str}?ip={user_identifier}"
 
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        words = json.loads(response.text)
-        if not words:
-            await channel.send(f"⚠️ No valid words found for `{selection_str}`. Retrying...")
-            await new_letters_round(channel)
-            return
+        # Use aiohttp for non-blocking HTTP requests
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                text = await response.text()
+                words = json.loads(text)
 
-        current_letters[channel.id] = {
-            "selection": selection_str,
-            "maxes": [w.upper() for w in words]
-        }
+                if not words:
+                    await channel.send(f"⚠️ No valid words found for `{selection_str}`. Retrying...")
+                    await new_letters_round(channel)
+                    return
 
-        emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in selection_str)
-        await channel.send(f"Find the longest word from this letters selection:\n>{emoji_output}<")
+                current_letters[channel.id] = {
+                    "selection": selection_str,
+                    "maxes": [w.upper() for w in words],
+                }
+
+                emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in selection_str)
+                await channel.send(f"Find the longest word from this letters selection:\n>{emoji_output}<")
+
+    except asyncio.TimeoutError:
+        await channel.send(f"⏳ Timeout fetching maxes for `{selection_str}`. Retrying...")
+        await new_letters_round(channel)
+
+    except aiohttp.ClientError as e:
+        await channel.send(f"🌐 Network error fetching maxes: `{e}`")
+        await asyncio.sleep(2)
+        await new_letters_round(channel)
 
     except Exception as e:
-        await channel.send(f"❌ Error fetching maxes: `{e}`")
+        await channel.send(f"❌ Unexpected error fetching maxes: `{e}`")
 
 @bot.event
 async def on_message(message):
@@ -1024,6 +1037,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
