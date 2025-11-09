@@ -1054,7 +1054,7 @@ async def on_message(message):
 async def dump_scores_daily():
     """Automatically dump scores every 24 hours."""
     await bot.wait_until_ready()  # ensure bot is logged in
-    channel = bot.get_channel(TEST_CHANNEL_ID)
+    channel = bot.get_channel(TEST_GENERAL_CHANNEL_ID)
     if channel is None:
         print("⚠️ Test channel not found! Check the ID.")
         return
@@ -1079,6 +1079,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
