@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 
 import discord
 from discord.ext import commands
+from discord.ext import tasks
 import aiohttp
 
 from numbers_solver import solve_numbers
@@ -1049,7 +1050,28 @@ async def on_message(message):
     # Always allow commands to process
     await bot.process_commands(message)
 
+@tasks.loop(hours=24)
+async def dump_scores_daily():
+    """Automatically dump scores every 24 hours."""
+    await bot.wait_until_ready()  # ensure bot is logged in
+    channel = bot.get_channel(TEST_CHANNEL_ID)
+    if channel is None:
+        print("⚠️ Test channel not found! Check the ID.")
+        return
 
+    # Simulate the command call by finding the command and invoking it
+    ctx = await bot.get_context(await channel.send("Auto dumping scores..."))
+    command = bot.get_command("dump_scores")
+    if command:
+        await ctx.invoke(command)
+    else:
+        await channel.send("⚠️ `!dump_scores` command not found.")
+
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user}")
+    if not dump_scores_daily.is_running():
+        dump_scores_daily.start()
 
 # === Run bot ===
 if __name__ == "__main__":
@@ -1057,6 +1079,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
