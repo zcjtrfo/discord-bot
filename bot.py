@@ -483,19 +483,6 @@ except FileNotFoundError:
     scores = {}
 
 # === Bot events ===
-@bot.event
-async def on_ready():
-    print(f"✅ Logged in as {bot.user} (id: {bot.user.id})")
-    history_invalid = set()
-    try:
-        with open("history_invalid.txt", "r", encoding="utf-8") as f:
-            for line in f:
-                parts = line.strip().split("\t")
-                if parts:
-                    history_invalid.add(parts[0].strip().upper())
-    except FileNotFoundError:
-        print("⚠️ history_invalid.txt not found; continuing without it.")
-
 async def new_puzzle(channel):
     word = random.choice(WORDS)
     scrambled_word = scramble(word)
@@ -1140,9 +1127,25 @@ async def dump_scores_daily():
 
 @bot.event
 async def on_ready():
-    print(f"✅ Logged in as {bot.user}")
+    print(f"✅ Logged in as {bot.user} (id: {bot.user.id})")
+
+    # --- Load invalid history once on startup ---
+    global history_invalid
+    history_invalid = set()
+    try:
+        with open("history_invalid.txt", "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split("\t")
+                if parts:
+                    history_invalid.add(parts[0].strip().upper())
+        print(f"📜 Loaded {len(history_invalid)} invalid words from history_invalid.txt")
+    except FileNotFoundError:
+        print("⚠️ history_invalid.txt not found; continuing without it.")
+
+    # --- Start background tasks ---
     if not dump_scores_daily.is_running():
         dump_scores_daily.start()
+        print("⏰ Started daily score dump task.")
 
 # === Run bot ===
 if __name__ == "__main__":
@@ -1150,6 +1153,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
