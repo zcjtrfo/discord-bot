@@ -781,24 +781,44 @@ def draw_letters():
     n_vowels = random.choice([3, 4, 5])
     n_cons = 9 - n_vowels
 
-    def draw(deck, count):
-        pool = [ltr for ltr, freq in deck.items() for _ in range(freq)]
+    def make_pool(deck):
+        # Expand frequency map into a list of individual cards
+        return [ltr for ltr, freq in deck.items() for _ in range(freq)]
+
+    def draw_from_deck(pool, count):
         chosen = []
         prev = None
+
         for _ in range(count):
-            while True:
-                pick = random.choice(pool)
-                if pick == prev:
-                    pick2 = random.choice(pool)
-                    if pick2 != pick:
-                        pick = pick2
-                chosen.append(pick)
-                prev = pick
-                break
+            if not pool:
+                break  # safety guard (shouldn't happen with normal frequencies)
+
+            # Shuffle and take the top card
+            random.shuffle(pool)
+            pick = pool.pop(0)
+
+            # If it's the same as previous, put it back and reshuffle, then draw again
+            if pick == prev:
+                pool.append(pick)   # put it back
+                random.shuffle(pool)
+                # draw again (this will remove whatever we draw)
+                pick = pool.pop(0)
+                # If this second draw is still equal to prev, we accept it (it is removed already).
+                # If it's different, we accept the different one (also removed).
+                # Either way, the chosen card has been removed from the pool.
+            # Otherwise (pick != prev) we already removed it so accept it.
+
+            chosen.append(pick)
+            prev = pick
+
         return chosen
 
-    vowels = draw(vows, n_vowels)
-    consonants = draw(cons, n_cons)
+    vowel_pool = make_pool(vows)
+    cons_pool = make_pool(cons)
+
+    vowels = draw_from_deck(vowel_pool, n_vowels)
+    consonants = draw_from_deck(cons_pool, n_cons)
+
     selection = vowels + consonants
     random.shuffle(selection)
     return selection
@@ -1079,6 +1099,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
