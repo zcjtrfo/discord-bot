@@ -1003,17 +1003,17 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current_letters and not message.content.startswith("!"):
             guess = message.content.strip().upper()
-    
-            # Multi-word guesses are ignored for reactions
-            if " " in guess:
-                return
-    
+
             # Handle give up
             if guess.lower() in ["give up", "giveup"]:
                 maxes = current_letters[cid]["maxes"]
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 await message.channel.send(f"💡 Max words were: {formatted}")
                 await new_letters_round(message.channel)
+                return
+    
+            # Multi-word guesses are ignored for reactions
+            if " " in guess:
                 return
     
             # Ensure lock exists
@@ -1153,6 +1153,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
