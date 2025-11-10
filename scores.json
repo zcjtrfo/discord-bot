@@ -19,9 +19,9 @@
   },
   "521210248367833089": {
     "name": "rob",
-    "con_score": 1445,
-    "num_score": 58,
-    "let_score": 862
+    "con_score": 1446,
+    "num_score": 63,
+    "let_score": 959
   },
   "418873868363759616": {
     "name": "jackjackhurst",
@@ -43,25 +43,25 @@
   },
   "621010681017401349": {
     "name": "Stephen R",
-    "con_score": 137,
+    "con_score": 142,
     "num_score": 84,
     "let_score": 0
   },
   "657684986392084491": {
     "name": "Conor",
-    "con_score": 3182,
-    "num_score": 64,
+    "con_score": 3183,
+    "num_score": 70,
     "let_score": 0
   },
   "299569822348476417": {
     "name": "ratatatatat",
-    "con_score": 6990,
+    "con_score": 7040,
     "num_score": 36,
     "let_score": 0
   },
   "212687527205666816": {
     "name": "RW",
-    "con_score": 697,
+    "con_score": 707,
     "num_score": 111,
     "let_score": 0
   },
@@ -79,20 +79,20 @@
   },
   "1430995876762882068": {
     "name": "Gabriel T",
-    "con_score": 332,
+    "con_score": 340,
     "num_score": 10,
     "let_score": 0
   },
   "630831348084506624": {
     "name": "GArmstrong97",
-    "con_score": 214,
+    "con_score": 215,
     "num_score": 568,
     "let_score": 0
   },
   "1275469438291939401": {
     "name": "\ud83e\uded6\ud83e\uded6",
     "con_score": 326,
-    "num_score": 656,
+    "num_score": 662,
     "let_score": 0
   },
   "1226291405656428667": {
@@ -104,7 +104,7 @@
   "1275423129543508060": {
     "name": "T Less",
     "con_score": 2,
-    "num_score": 1617,
+    "num_score": 1628,
     "let_score": 0
   },
   "1279389556885684247": {
@@ -181,7 +181,7 @@
   },
   "763446611174096916": {
     "name": "Ethan",
-    "con_score": 233,
+    "con_score": 235,
     "num_score": 81,
     "let_score": 0
   },
@@ -265,7 +265,7 @@
   },
   "718408971312169031": {
     "name": "Elwin",
-    "con_score": 433,
+    "con_score": 503,
     "num_score": 93,
     "let_score": 0
   },
@@ -291,6 +291,12 @@
     "name": "Joshuorgz",
     "con_score": 15,
     "num_score": 0,
+    "let_score": 0
+  },
+  "1430532788221776054": {
+    "name": "Ravi C.",
+    "con_score": 0,
+    "num_score": 10,
     "let_score": 0
   }
 }
