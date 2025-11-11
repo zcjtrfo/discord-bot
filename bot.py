@@ -448,7 +448,7 @@ CONGRATS_MESSAGES = [
     "✅ Great stuff, {user}!",
     "⚡ Speedy, {user}!",
     "🏆 You got it first, {user}!",
-    "🎲 Score one for {user}!",
+    "🧮 Racking up the points, {user}!",
     "💡 Quick thinking, {user}!",
     "👀 What a spot, {user}!",
 ]
@@ -889,21 +889,11 @@ async def on_message(message):
             elif guess.lower().startswith(("multiply", "times")):
                 guess = "x".join(str(n) for n in selection)
 
-            # 🆕 Letter shorthands for common numbers
-            # h=100, s=75, f=50, t=25
-            # Example: (h+f)/t +10*s  → (100+50)/25 +10*75
+            # Otherwise, replace shorthand letters everywhere
             else:
-                shorthand_map = {
-                    "h": "100",
-                    "s": "75",
-                    "f": "50",
-                    "t": "25",
-                }
-                # Only replace letters that are standing alone or part of math expressions
-                # Avoid messing up variables like "this" by enforcing word boundaries where possible
+                shorthand_map = {"h":"100","s":"75","f":"50","t":"25"}
                 for key, val in shorthand_map.items():
-                    # Replace both lowercase and uppercase
-                    guess = re.sub(rf"\b{key}\b", val, guess, flags=re.IGNORECASE)
+                    guess = re.sub(key, val, guess, flags=re.IGNORECASE)
 
             # ✅ Normalize before evaluation and for display
             normalized_guess = normalize_expression(guess)
@@ -950,6 +940,7 @@ async def on_message(message):
                 if cat_bonus:
                     num_score += 2
                     await message.add_reaction("<:LNAFP:1437476304990638162>")
+                    await message.channel.send("<:LNAFP:1437476304990638162> Double points!")
                 else:
                     num_score += 1
             
@@ -1186,6 +1177,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
