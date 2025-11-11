@@ -870,98 +870,97 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current_numbers and not message.content.startswith("!"):
             guess = message.content.strip()
-    
+
             # User gives up
             if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 sol = current_numbers[cid]["solution"]
                 await message.channel.send(f"💡 A possible solution was: `{sol}`")
                 await new_numbers_round(message.channel)
                 return
-    
+
             selection = current_numbers[cid]["selection"]
             target = current_numbers[cid]["target"]
-    
+
             # 🟡 "Add" shorthand — e.g. "add them up"
             if guess.lower().startswith("add"):
                 guess = "+".join(str(n) for n in selection)
-    
+
             # 🟡 "Multiply"/"Times" shorthand — e.g. "multiply them" or "times them together"
             elif guess.lower().startswith(("multiply", "times")):
                 guess = "x".join(str(n) for n in selection)
 
             # Otherwise, replace shorthand letters everywhere
             else:
-                shorthand_map = {"h":"100","s":"75","f":"50","t":"25"}
+                shorthand_map = {"h": "100", "s": "75", "f": "50", "t": "25"}
                 for key, val in shorthand_map.items():
                     guess = re.sub(key, val, guess, flags=re.IGNORECASE)
 
             # ✅ Normalize before evaluation and for display
             normalized_guess = normalize_expression(guess)
-    
+
             # Evaluate the user’s attempt
             result = parse_numbers_solution(normalized_guess, selection)
             if result is False:
                 return  # ignore invalid attempts
-    
+
             # Ensure per-channel lock exists
             numbers_locks.setdefault(cid, asyncio.Lock())
-    
+
             # Capture data for use outside the lock
             is_correct = False
             winner_name = None
             winner_id = None
             chosen_congrats = None
             chosen_guess = None
-    
+
             async with numbers_locks[cid]:
                 if cid not in current_numbers:
                     return  # already solved
-    
-            if result == target:
-                is_correct = True
-                winner_id = str(message.author.id)
-                winner_name = message.author.display_name
-            
-                existing_data = scores.get(winner_id, {})
-                con_score = existing_data.get("con_score", 0)
-                num_score = existing_data.get("num_score", 0)
-                let_score = existing_data.get("let_score", 0)
-            
-                # 🧮 Check for "no large numbers used" condition
-                large_numbers = {25, 50, 75, 100}
-                selection_has_large = any(n in large_numbers for n in selection)
-            
-                # Normalize expression before checking which numbers were used
-                used_large = any(str(n) in normalized_guess for n in large_numbers)
-            
-                # 🐱 LNAFP bonus if selection had large numbers but user didn’t use any
-                cat_bonus = selection_has_large and not used_large
-            
-                if cat_bonus:
-                    num_score += 2
-                    await message.add_reaction("<:LNAFP:1437476304990638162>")
-                    await message.channel.send("<:LNAFP:1437476304990638162> Double points!")
-                else:
-                    num_score += 1
-            
-                # Save updated score
-                scores[winner_id] = {
-                    "name": winner_name,
-                    "con_score": con_score,
-                    "num_score": num_score,
-                    "let_score": let_score,
-                }
-            
-                chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-                chosen_guess = normalized_guess  # display normalized version
-                del current_numbers[cid]
-    
+
+                if result == target:
+                    is_correct = True
+                    winner_id = str(message.author.id)
+                    winner_name = message.author.display_name
+
+                    existing_data = scores.get(winner_id, {})
+                    con_score = existing_data.get("con_score", 0)
+                    num_score = existing_data.get("num_score", 0)
+                    let_score = existing_data.get("let_score", 0)
+
+                    # 🧮 Check for "no large numbers used" condition
+                    large_numbers = {25, 50, 75, 100}
+                    selection_has_large = any(n in large_numbers for n in selection)
+
+                    # Normalize expression before checking which numbers were used
+                    used_large = any(str(n) in normalized_guess for n in large_numbers)
+
+                    # 🐱 LNAFP bonus if selection had large numbers but user didn’t use any
+                    cat_bonus = selection_has_large and not used_large
+
+                    if cat_bonus:
+                        num_score += 2
+                        await message.add_reaction("<:LNAFP:1437476304990638162>")
+                        await message.channel.send("<:LNAFP:1437476304990638162> Double points!")
+                    else:
+                        num_score += 1
+
+                    # Save updated score
+                    scores[winner_id] = {
+                        "name": winner_name,
+                        "con_score": con_score,
+                        "num_score": num_score,
+                        "let_score": let_score,
+                    }
+
+                    chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                    chosen_guess = normalized_guess  # display normalized version
+                    del current_numbers[cid]
+
             # Outside the lock: save file, announce winner, start new round
             if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-    
-                # ✅ Normalized version displayed here
+
                 await message.channel.send(f"{chosen_congrats}\n> `{chosen_guess}` = **{target}**")
                 await new_numbers_round(message.channel)
                 return
@@ -1177,6 +1176,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
