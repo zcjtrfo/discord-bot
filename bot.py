@@ -970,53 +970,68 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
-
+    
+            # 🧩 Handle hint request
+            if guess.lower() == "hint":
+                answer = current[cid]
+                first, last = answer[0], answer[-1]
+                middle_len = len(answer) - 2
+                blanks = "⏹️" * middle_len  # stop button emoji instead of blanks
+    
+                def to_emoji(ch):
+                    return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
+    
+                hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
+                await message.channel.send(f"💡 Here's a hint: {hint_display}")
+                return
+    
+            # 🛑 Handle give up
             if guess in ["give up", "giveup", "skip", "next"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
-
+    
             # ensure lock exists
             locks.setdefault(cid, asyncio.Lock())
-
+    
             # captureables for after-lock actions
             is_correct = False
             winner_id = None
             winner_name = None
             chosen_congrats = None
             answer_text = None
-
+    
             async with locks[cid]:
                 if cid not in current:
                     return  # already solved
-
+    
                 if guess == current[cid].lower():
                     is_correct = True
                     winner_id = str(message.author.id)
                     winner_name = message.author.display_name
-
+    
                     existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0) + 1
                     num_score = existing_data.get("num_score", 0)
                     let_score = existing_data.get("let_score", 0)
-
+    
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
                         "let_score": let_score,
                     }
-
+    
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
                     answer_text = current[cid]
                     del current[cid]
-
+    
             # outside lock: persist + notify + new puzzle
             if is_correct:
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-
+    
                 await message.channel.send(f"{chosen_congrats} The answer is **{answer_text}**")
                 await new_puzzle(message.channel)
                 return
@@ -1028,7 +1043,7 @@ async def on_message(message):
             guess = message.content.strip().upper()
 
             # Handle give up
-            if guess.lower() in ["give up", "giveup"]:
+            if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 maxes = current_letters[cid]["maxes"]
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 await message.channel.send(f"💡 Max words were: {formatted}")
@@ -1045,7 +1060,7 @@ async def on_message(message):
                 chosen_word = random.choice(maxes)
                 first, last = chosen_word[0], chosen_word[-1]
                 middle_len = len(chosen_word) - 2
-                blanks = "⬜" * middle_len
+                blanks = "⏹️" * middle_len
 
                 # Convert letters to 🇦–🇿 emoji using regional indicators
                 def to_emoji(ch):
@@ -1193,6 +1208,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
