@@ -1076,6 +1076,7 @@ async def on_message(message):
 
                 selection = current_letters[cid]["selection"]
 
+                # ✅ THIS must be inside the lock
                 if guess in current_letters[cid]["maxes"]:
                     is_correct = True
                     winner_id = str(message.author.id)
@@ -1094,8 +1095,9 @@ async def on_message(message):
                     }
 
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-
                     max_words = current_letters[cid]["maxes"].copy()
+
+                    # ✅ Delete current round only after we’re done reading from it
                     del current_letters[cid]
 
             # ✅ Reaction logic starts here
@@ -1191,6 +1193,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
