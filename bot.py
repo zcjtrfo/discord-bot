@@ -21,7 +21,7 @@ os.environ["DISCORD_NO_AUDIO"] = "1"
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
 NUMBERS_CHANNEL_ID = 1431380518179573911
-LETTERS_CHANNEL_ID = 1436454594224849016
+LETTERS_CHANNEL_ID = 1438454341920100423
 
 # ✅ Test channels
 TEST_GENERAL_CHANNEL_ID = 1424857126878052413
@@ -971,21 +971,25 @@ async def on_message(message):
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
     
-            # 🧩 Handle hint request
-            if guess.lower() == "hint":
+            # 🧩 Handle "hint" request
+            if guess == "hint":
                 answer = current[cid]
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
-                blanks = "⏹️" * middle_len  # stop button emoji instead of blanks
+                blanks = "⏹️" * middle_len  # stop_button emoji
     
                 def to_emoji(ch):
                     return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
     
                 hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
-                await message.channel.send(f"💡 Here's a hint: {hint_display}")
+    
+                # Get the scramble shown to users (same as in new_puzzle)
+                scramble = regional_indicator(scramble(answer))
+    
+                await message.channel.send(f"💡 Here's a hint:\n>{scramble}<\n>{hint_display}<")
                 return
     
-            # 🛑 Handle give up
+            # 🧩 Handle "give up" or similar
             if guess in ["give up", "giveup", "skip", "next"]:
                 answer = current[cid]
                 await message.channel.send(f"💡 The answer is **{answer}**.")
@@ -1041,7 +1045,7 @@ async def on_message(message):
         cid = message.channel.id
         if cid in current_letters and not message.content.startswith("!"):
             guess = message.content.strip().upper()
-
+    
             # Handle give up
             if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 maxes = current_letters[cid]["maxes"]
@@ -1049,34 +1053,41 @@ async def on_message(message):
                 await message.channel.send(f"💡 Max words were: {formatted}")
                 await new_letters_round(message.channel)
                 return
-
+    
             # 🧩 Handle hint request
             if guess.lower() == "hint":
                 maxes = current_letters[cid]["maxes"]
+                selection = current_letters[cid]["selection"]
+    
                 if not maxes:
                     await message.channel.send("⚠️ No max words available yet.")
                     return
-
+    
                 chosen_word = random.choice(maxes)
                 first, last = chosen_word[0], chosen_word[-1]
                 middle_len = len(chosen_word) - 2
-                blanks = "⏹️" * middle_len
-
+                blanks = "⏹️" * middle_len  # stop_button emoji
+    
                 # Convert letters to 🇦–🇿 emoji using regional indicators
                 def to_emoji(ch):
                     return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
-
+    
+                # Create hint display
                 hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
-                await message.channel.send(f"💡 Here's a hint: {hint_display}")
+    
+                # Show current selection as emoji line
+                selection_display = "".join(to_emoji(ch) for ch in selection)
+    
+                await message.channel.send(f"💡 Here's a hint:\n>{selection_display}<\n>{hint_display}<")
                 return
-
+    
             # Multi-word guesses are ignored for reactions
             if " " in guess:
                 return
-
+    
             # Ensure lock exists
             letters_locks.setdefault(cid, asyncio.Lock())
-
+    
             # Local vars
             is_correct = False
             winner_id = None
@@ -1084,75 +1095,73 @@ async def on_message(message):
             chosen_congrats = None
             selection = None
             max_words = None
-
+    
             async with letters_locks[cid]:
                 if cid not in current_letters:
                     return
-
+    
                 selection = current_letters[cid]["selection"]
-
+    
                 # ✅ THIS must be inside the lock
                 if guess in current_letters[cid]["maxes"]:
                     is_correct = True
                     winner_id = str(message.author.id)
                     winner_name = message.author.display_name
-
+    
                     existing_data = scores.get(winner_id, {})
                     con_score = existing_data.get("con_score", 0)
                     num_score = existing_data.get("num_score", 0)
                     let_score = existing_data.get("let_score", 0) + 1
-
+    
                     scores[winner_id] = {
                         "name": winner_name,
                         "con_score": con_score,
                         "num_score": num_score,
                         "let_score": let_score,
                     }
-
+    
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
                     max_words = current_letters[cid]["maxes"].copy()
-
-                    # ✅ Delete current round only after we’re done reading from it
                     del current_letters[cid]
-
+    
             # ✅ Reaction logic starts here
             if " " in guess:
                 return
-
+    
             # Case 1: Correct answer
             if is_correct:
                 await message.add_reaction("✅")
-
+    
                 # Persist and announce
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
-
+    
                 formatted_maxes = ", ".join(f"**{w}**" for w in sorted(max_words))
                 await message.channel.send(f"{chosen_congrats} 💡 The maxes were: {formatted_maxes}")
                 await new_letters_round(message.channel)
                 return
-
+    
             # Case 2: Incorrect — check letter validity
             if not all(guess.count(ch) <= selection.count(ch) for ch in guess):
                 await message.add_reaction("❓")
                 return
-
+    
             # Case 3: Guess uses valid letters — now check validity against dictionary
             if guess in history_invalid:
                 await message.add_reaction("🪦")
                 return
-
+    
             # Check validity via API
             user_identifier = urllib.parse.quote("lettersbot")
             url = f"https://focaltools.azurewebsites.net/api/checkword/{guess}?ip={user_identifier}"
-
+    
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=10) as resp:
                         data = (await resp.text()).strip().lower()
             except Exception:
                 data = "error"
-
+    
             if "true" in data:
                 await message.add_reaction("⬆️")
             elif "false" in data:
@@ -1208,6 +1217,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
