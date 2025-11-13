@@ -971,19 +971,16 @@ async def on_message(message):
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
     
-            # 🧩 Handle hint request
             if guess.lower() == "hint":
                 answer = current[cid]
-                scrambled_view = regional_indicator(scramble(answer))  # ✅ renamed variable here
+                scrambled_view = regional_indicator(scramble(answer))
             
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
                 blanks = "⏹️" * middle_len
             
-                def to_emoji(ch):
-                    return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
+                hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
             
-                hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
                 await message.channel.send(f"💡 Here's a hint:\n>{scrambled_view}<\n>{hint_display}<")
                 return
     
@@ -1064,15 +1061,13 @@ async def on_message(message):
                 chosen_word = random.choice(maxes)
                 first, last = chosen_word[0], chosen_word[-1]
                 middle_len = len(chosen_word) - 2
+            
+                # Use stop buttons for the blanks
                 blanks = "⏹️" * middle_len
             
-                def to_emoji(ch):
-                    return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
-            
-                hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
-            
-                # ✅ Break up flags
-                selection_display = "\u200B".join(to_emoji(ch) for ch in selection)
+                # Use regional_indicator for clean emoji formatting
+                selection_display = regional_indicator(selection)
+                hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
             
                 await message.channel.send(f"💡 Here's a hint:\n>{selection_display}<\n>{hint_display}<")
                 return
@@ -1213,6 +1208,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
