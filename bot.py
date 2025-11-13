@@ -977,7 +977,7 @@ async def on_message(message):
             
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
-                blanks = "⏹️" * middle_len
+                blanks = " ".join("⏹️" for _ in range(middle_len))
             
                 hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
             
@@ -1063,7 +1063,7 @@ async def on_message(message):
                 middle_len = len(chosen_word) - 2
             
                 # Use stop buttons for the blanks
-                blanks = "⏹️" * middle_len
+                blanks = " ".join("⏹️" for _ in range(middle_len))
             
                 # Use regional_indicator for clean emoji formatting
                 selection_display = regional_indicator(selection)
@@ -1208,6 +1208,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
