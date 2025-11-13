@@ -971,22 +971,20 @@ async def on_message(message):
         if cid in current and not message.content.startswith("!"):
             guess = message.content.strip().replace("?", "").lower()
     
-            # 🧩 Handle "hint" request
-            if guess == "hint":
+            # 🧩 Handle hint request
+            if guess.lower() == "hint":
                 answer = current[cid]
+                scrambled_view = regional_indicator(scramble(answer))  # ✅ renamed variable here
+            
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
-                blanks = "⏹️" * middle_len  # stop_button emoji
-    
+                blanks = "⏹️" * middle_len
+            
                 def to_emoji(ch):
                     return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
-    
+            
                 hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
-    
-                # Get the scramble shown to users (same as in new_puzzle)
-                scramble = regional_indicator(scramble(answer))
-    
-                await message.channel.send(f"💡 Here's a hint:\n>{scramble}<\n>{hint_display}<")
+                await message.channel.send(f"💡 Here's a hint:\n>{scrambled_view}<\n>{hint_display}<")
                 return
     
             # 🧩 Handle "give up" or similar
@@ -1058,26 +1056,24 @@ async def on_message(message):
             if guess.lower() == "hint":
                 maxes = current_letters[cid]["maxes"]
                 selection = current_letters[cid]["selection"]
-    
+            
                 if not maxes:
                     await message.channel.send("⚠️ No max words available yet.")
                     return
-    
+            
                 chosen_word = random.choice(maxes)
                 first, last = chosen_word[0], chosen_word[-1]
                 middle_len = len(chosen_word) - 2
-                blanks = "⏹️" * middle_len  # stop_button emoji
-    
-                # Convert letters to 🇦–🇿 emoji using regional indicators
+                blanks = "⏹️" * middle_len
+            
                 def to_emoji(ch):
                     return chr(0x1F1E6 + (ord(ch.upper()) - ord('A')))
-    
-                # Create hint display
+            
                 hint_display = f"{to_emoji(first)}{blanks}{to_emoji(last)}"
-    
-                # Show current selection as emoji line
-                selection_display = "".join(to_emoji(ch) for ch in selection)
-    
+            
+                # ✅ Break up flags
+                selection_display = "\u200B".join(to_emoji(ch) for ch in selection)
+            
                 await message.channel.send(f"💡 Here's a hint:\n>{selection_display}<\n>{hint_display}<")
                 return
     
@@ -1217,6 +1213,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
