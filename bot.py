@@ -492,6 +492,12 @@ async def new_puzzle(channel):
     formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
     await channel.send(formatted_message)
 
+async def safe_react(message, emoji):
+    try:
+        await message.add_reaction(emoji)
+    except Exception:
+        pass
+
 # === Moderator-only Conundrum & Numbers Commands (updated) ===
 
 # === Test-only Commands ===
@@ -939,7 +945,7 @@ async def on_message(message):
 
                     if cat_bonus:
                         num_score += 2
-                        await message.add_reaction("<:LNAFP:1437476304990638162>")
+                        await safe_react(message, "<:LNAFP:1437476304990638162>")
                         await message.channel.send("<:LNAFP:1437476304990638162> Double points!")
                     else:
                         num_score += 1
@@ -1121,7 +1127,7 @@ async def on_message(message):
     
             # Case 1: Correct answer
             if is_correct:
-                await message.add_reaction("✅")
+                await safe_react(message, "✅")
     
                 # Persist and announce
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
@@ -1134,12 +1140,12 @@ async def on_message(message):
     
             # Case 2: Incorrect — check letter validity
             if not all(guess.count(ch) <= selection.count(ch) for ch in guess):
-                await message.add_reaction("❓")
+                await safe_react(message, "❓")
                 return
     
             # Case 3: Guess uses valid letters — now check validity against dictionary
             if guess in history_invalid:
-                await message.add_reaction("🪦")
+                await safe_react(message, "🪦")
                 return
     
             # Check validity via API
@@ -1154,11 +1160,11 @@ async def on_message(message):
                 data = "error"
     
             if "true" in data:
-                await message.add_reaction("⬆️")
+                await safe_react(message, "⬆️")
             elif "false" in data:
-                await message.add_reaction("❌")
+                await safe_react(message, "❌")
             else:
-                await message.add_reaction("⚠️")
+                await safe_react(message, "⚠️")
 
     # Always allow commands to process
     await bot.process_commands(message)
@@ -1208,6 +1214,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
