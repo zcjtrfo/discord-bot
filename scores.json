@@ -2,14 +2,14 @@
   "928575866567528481": {
     "name": "TCap",
     "con_score": 7711,
-    "num_score": 601,
-    "let_score": 630
+    "num_score": 632,
+    "let_score": 796
   },
   "715299456987430932": {
     "name": "Brocky",
     "con_score": 5593,
     "num_score": 633,
-    "let_score": 416
+    "let_score": 527
   },
   "101704953986297856": {
     "name": "maus",
@@ -19,9 +19,9 @@
   },
   "521210248367833089": {
     "name": "rob",
-    "con_score": 1740,
+    "con_score": 1845,
     "num_score": 103,
-    "let_score": 1179
+    "let_score": 1510
   },
   "418873868363759616": {
     "name": "jackjackhurst",
@@ -31,9 +31,9 @@
   },
   "630777176660377602": {
     "name": "Fiona T",
-    "con_score": 343,
-    "num_score": 381,
-    "let_score": 105
+    "con_score": 351,
+    "num_score": 412,
+    "let_score": 184
   },
   "1425530982039031970": {
     "name": "Livvy",
@@ -51,17 +51,17 @@
     "name": "Conor",
     "con_score": 3709,
     "num_score": 70,
-    "let_score": 965
+    "let_score": 1057
   },
   "299569822348476417": {
     "name": "ratatatatat",
-    "con_score": 8643,
+    "con_score": 8663,
     "num_score": 37,
-    "let_score": 1403
+    "let_score": 1727
   },
   "212687527205666816": {
     "name": "RW",
-    "con_score": 888,
+    "con_score": 889,
     "num_score": 116,
     "let_score": 63
   },
@@ -79,14 +79,14 @@
   },
   "1430995876762882068": {
     "name": "Gabriel T",
-    "con_score": 609,
+    "con_score": 633,
     "num_score": 10,
     "let_score": 6
   },
   "630831348084506624": {
     "name": "GArmstrong97",
-    "con_score": 219,
-    "num_score": 670,
+    "con_score": 220,
+    "num_score": 681,
     "let_score": 10
   },
   "1275469438291939401": {
@@ -103,21 +103,21 @@
   },
   "1275423129543508060": {
     "name": "T Less",
-    "con_score": 2,
-    "num_score": 1825,
+    "con_score": 4,
+    "num_score": 1866,
     "let_score": 0
   },
   "1279389556885684247": {
     "name": "Des",
-    "con_score": 280,
+    "con_score": 293,
     "num_score": 226,
-    "let_score": 10
+    "let_score": 18
   },
   "1029096745919057941": {
     "name": "ThomasGeorgios",
-    "con_score": 258,
+    "con_score": 262,
     "num_score": 217,
-    "let_score": 32
+    "let_score": 47
   },
   "1159403449952247821": {
     "name": "BaldyDaz",
@@ -127,27 +127,27 @@
   },
   "1158462549847715850": {
     "name": "M3 (Andres)",
-    "con_score": 1188,
+    "con_score": 1206,
     "num_score": 33,
-    "let_score": 59
+    "let_score": 92
   },
   "919315956365426708": {
     "name": "ross",
-    "con_score": 2223,
+    "con_score": 2411,
     "num_score": 0,
-    "let_score": 93
+    "let_score": 114
   },
   "181371725106249728": {
     "name": "Dagon",
-    "con_score": 236,
+    "con_score": 256,
     "num_score": 20,
-    "let_score": 288
+    "let_score": 312
   },
   "546110197807185921": {
     "name": "eagles123 (Rowland)",
-    "con_score": 200,
-    "num_score": 27,
-    "let_score": 1
+    "con_score": 233,
+    "num_score": 30,
+    "let_score": 59
   },
   "414142731775115264": {
     "name": "pasta_rogue",
@@ -163,9 +163,9 @@
   },
   "135525287138951168": {
     "name": "Matty",
-    "con_score": 301,
+    "con_score": 302,
     "num_score": 1,
-    "let_score": 39
+    "let_score": 91
   },
   "655166080490143745": {
     "name": "Adam Beach",
@@ -176,25 +176,25 @@
   "252857431791501314": {
     "name": "Miriam",
     "con_score": 21,
-    "num_score": 12,
-    "let_score": 5
+    "num_score": 18,
+    "let_score": 20
   },
   "763446611174096916": {
     "name": "Ethan",
-    "con_score": 257,
+    "con_score": 265,
     "num_score": 85,
-    "let_score": 280
+    "let_score": 338
   },
   "910100048925327360": {
     "name": "colint",
-    "con_score": 854,
-    "num_score": 791,
-    "let_score": 74
+    "con_score": 866,
+    "num_score": 820,
+    "let_score": 93
   },
   "634099505590960129": {
     "name": "Tom Finn",
     "con_score": 67,
-    "num_score": 287,
+    "num_score": 303,
     "let_score": 53
   },
   "1027532403893358612": {
@@ -206,12 +206,12 @@
   "117749297562255364": {
     "name": "Silas",
     "con_score": 18,
-    "num_score": 18,
-    "let_score": 65
+    "num_score": 19,
+    "let_score": 470
   },
   "1077748681798864916": {
     "name": "quinn",
-    "con_score": 987,
+    "con_score": 998,
     "num_score": 0,
     "let_score": 0
   },
@@ -219,7 +219,7 @@
     "name": "Charlie H.",
     "con_score": 434,
     "num_score": 105,
-    "let_score": 111
+    "let_score": 315
   },
   "628678296892342321": {
     "name": "graeme",
@@ -248,7 +248,7 @@
   "234479369920315392": {
     "name": "JonPinyan",
     "con_score": 0,
-    "num_score": 65,
+    "num_score": 78,
     "let_score": 0
   },
   "187300643273310209": {
@@ -265,9 +265,9 @@
   },
   "718408971312169031": {
     "name": "Elwin",
-    "con_score": 946,
+    "con_score": 987,
     "num_score": 143,
-    "let_score": 82
+    "let_score": 88
   },
   "1435623777743671358": {
     "name": "George F",
@@ -284,7 +284,7 @@
   "742813957714083972": {
     "name": "Philip Aston",
     "con_score": 6,
-    "num_score": 0,
+    "num_score": 1,
     "let_score": 0
   },
   "1437016072447590536": {
@@ -303,7 +303,7 @@
     "name": "xdesyami",
     "con_score": 17,
     "num_score": 40,
-    "let_score": 272
+    "let_score": 547
   },
   "281556892948496404": {
     "name": "IAmIs",
