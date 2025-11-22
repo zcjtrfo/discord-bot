@@ -1045,13 +1045,23 @@ async def on_message(message):
     elif message.channel.id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
         cid = message.channel.id
     
+        # Do not consume commands
         if message.content.startswith("!"):
+            await bot.process_commands(message)
+            return
+    
+        # If no active round, ignore but still allow commands in channel
+        if cid not in current_letters:
+            await bot.process_commands(message)
             return
     
         letters_locks.setdefault(cid, asyncio.Lock())
     
         async with letters_locks[cid]:
+    
+            # Round may have ended while waiting for lock
             if cid not in current_letters:
+                await bot.process_commands(message)
                 return
     
             round_data = current_letters[cid]
@@ -1065,6 +1075,7 @@ async def on_message(message):
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 del current_letters[cid]
                 post_action = ("giveup", formatted)
+    
             # hint
             elif guess.lower() == "hint":
                 if not maxes:
@@ -1076,6 +1087,7 @@ async def on_message(message):
                     sel_display = regional_indicator(selection)
                     hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
                     post_action = ("hint", (sel_display, hint_display))
+    
             # correct
             elif guess in maxes:
                 winner_id = str(message.author.id)
@@ -1091,8 +1103,9 @@ async def on_message(message):
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 del current_letters[cid]
                 post_action = ("correct", (congrats, formatted))
+    
+            # incorrect
             else:
-                # incorrect path, safe because selection is stable
                 if " " in guess:
                     post_action = ("ignore", None)
                 elif not all(guess.count(ch) <= selection.count(ch) for ch in guess):
@@ -1103,21 +1116,23 @@ async def on_message(message):
                     post_action = ("checkword", guess)
     
         # ----- post-lock actions -----
-    
         action, data = post_action
     
         if action == "giveup":
             await message.channel.send(f"💡 Max words were: {data}")
             await new_letters_round(message.channel)
+            await bot.process_commands(message)
             return
     
         if action == "nomaxes":
             await message.channel.send("⚠️ No max words available yet.")
+            await bot.process_commands(message)
             return
     
         if action == "hint":
             sel_display, hint_display = data
             await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            await bot.process_commands(message)
             return
     
         if action == "correct":
@@ -1127,13 +1142,16 @@ async def on_message(message):
                 json.dump(scores, f, indent=2)
             await message.channel.send(f"{congrats} 💡 The maxes were: {formatted}")
             await new_letters_round(message.channel)
+            await bot.process_commands(message)
             return
     
         if action == "ignore":
+            await bot.process_commands(message)
             return
     
         if action == "react":
             await message.add_reaction(data)
+            await bot.process_commands(message)
             return
     
         if action == "checkword":
@@ -1153,6 +1171,8 @@ async def on_message(message):
                 await message.add_reaction("❌")
             else:
                 await message.add_reaction("⚠️")
+    
+            await bot.process_commands(message)
             return
 
 
@@ -1204,6 +1224,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
