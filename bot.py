@@ -1087,6 +1087,11 @@ async def on_message(message):
                     sel_display = regional_indicator(selection)
                     hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
                     post_action = ("hint", (sel_display, hint_display))
+
+            # print current puzzle
+            elif guess.lower() == "print":
+                sel_display = regional_indicator(selection)
+                post_action = ("print", sel_display)
     
             # correct
             elif guess in maxes:
@@ -1132,6 +1137,11 @@ async def on_message(message):
         if action == "hint":
             sel_display, hint_display = data
             await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            await bot.process_commands(message)
+            return
+
+        if action == "print":
+            await message.channel.send(f">{data}<")
             await bot.process_commands(message)
             return
     
@@ -1224,6 +1234,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
