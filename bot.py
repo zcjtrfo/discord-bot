@@ -1044,127 +1044,117 @@ async def on_message(message):
     # --- LETTERS CHANNELS (main + test) ---
     elif message.channel.id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
         cid = message.channel.id
-        if cid in current_letters and not message.content.startswith("!"):
+    
+        if message.content.startswith("!"):
+            return
+    
+        letters_locks.setdefault(cid, asyncio.Lock())
+    
+        async with letters_locks[cid]:
+            if cid not in current_letters:
+                return
+    
+            round_data = current_letters[cid]
+            selection = round_data["selection"]
+            maxes = round_data["maxes"]
+    
             guess = message.content.strip().upper()
     
-            # Handle give up
+            # give up
             if guess.lower() in ["give up", "giveup", "skip", "next"]:
-                maxes = current_letters[cid]["maxes"]
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
-                await message.channel.send(f"💡 Max words were: {formatted}")
-                await new_letters_round(message.channel)
-                return
-    
-            # 🧩 Handle hint request
-            if guess.lower() == "hint":
-                maxes = current_letters[cid]["maxes"]
-                selection = current_letters[cid]["selection"]
-            
+                del current_letters[cid]
+                post_action = ("giveup", formatted)
+            # hint
+            elif guess.lower() == "hint":
                 if not maxes:
-                    await message.channel.send("⚠️ No max words available yet.")
-                    return
-            
-                chosen_word = random.choice(maxes)
-                first, last = chosen_word[0], chosen_word[-1]
-                middle_len = len(chosen_word) - 2
-            
-                # Use stop buttons for the blanks
-                blanks = " ".join("⏹️" for _ in range(middle_len))
-            
-                # Use regional_indicator for clean emoji formatting
-                selection_display = regional_indicator(selection)
-                hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
-            
-                await message.channel.send(f"💡 Here's a hint:\n>{selection_display}<\n>{hint_display}<")
-                return
+                    post_action = ("nomaxes", None)
+                else:
+                    word = random.choice(maxes)
+                    first, last = word[0], word[-1]
+                    blanks = " ".join("⏹️" for _ in range(len(word) - 2))
+                    sel_display = regional_indicator(selection)
+                    hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
+                    post_action = ("hint", (sel_display, hint_display))
+            # correct
+            elif guess in maxes:
+                winner_id = str(message.author.id)
+                winner_name = message.author.display_name
+                existing = scores.get(winner_id, {})
+                scores[winner_id] = {
+                    "name": winner_name,
+                    "con_score": existing.get("con_score", 0),
+                    "num_score": existing.get("num_score", 0),
+                    "let_score": existing.get("let_score", 0) + 1,
+                }
+                congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
+                del current_letters[cid]
+                post_action = ("correct", (congrats, formatted))
+            else:
+                # incorrect path, safe because selection is stable
+                if " " in guess:
+                    post_action = ("ignore", None)
+                elif not all(guess.count(ch) <= selection.count(ch) for ch in guess):
+                    post_action = ("react", "❓")
+                elif guess in history_invalid:
+                    post_action = ("react", "🪦")
+                else:
+                    post_action = ("checkword", guess)
     
-            # Multi-word guesses are ignored for reactions
-            if " " in guess:
-                return
+        # ----- post-lock actions -----
     
-            # Ensure lock exists
-            letters_locks.setdefault(cid, asyncio.Lock())
+        action, data = post_action
     
-            # Local vars
-            is_correct = False
-            winner_id = None
-            winner_name = None
-            chosen_congrats = None
-            selection = None
-            max_words = None
+        if action == "giveup":
+            await message.channel.send(f"💡 Max words were: {data}")
+            await new_letters_round(message.channel)
+            return
     
-            async with letters_locks[cid]:
-                if cid not in current_letters:
-                    return
+        if action == "nomaxes":
+            await message.channel.send("⚠️ No max words available yet.")
+            return
     
-                selection = current_letters[cid]["selection"]
+        if action == "hint":
+            sel_display, hint_display = data
+            await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            return
     
-                # ✅ THIS must be inside the lock
-                if guess in current_letters[cid]["maxes"]:
-                    is_correct = True
-                    winner_id = str(message.author.id)
-                    winner_name = message.author.display_name
+        if action == "correct":
+            congrats, formatted = data
+            await message.add_reaction("✅")
+            with open(SCORES_FILE, "w", encoding="utf-8") as f:
+                json.dump(scores, f, indent=2)
+            await message.channel.send(f"{congrats} 💡 The maxes were: {formatted}")
+            await new_letters_round(message.channel)
+            return
     
-                    existing_data = scores.get(winner_id, {})
-                    con_score = existing_data.get("con_score", 0)
-                    num_score = existing_data.get("num_score", 0)
-                    let_score = existing_data.get("let_score", 0) + 1
+        if action == "ignore":
+            return
     
-                    scores[winner_id] = {
-                        "name": winner_name,
-                        "con_score": con_score,
-                        "num_score": num_score,
-                        "let_score": let_score,
-                    }
+        if action == "react":
+            await message.add_reaction(data)
+            return
     
-                    chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-                    max_words = current_letters[cid]["maxes"].copy()
-                    del current_letters[cid]
-    
-            # ✅ Reaction logic starts here
-            if " " in guess:
-                return
-    
-            # Case 1: Correct answer
-            if is_correct:
-                await safe_react(message, "✅")
-    
-                # Persist and announce
-                with open(SCORES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(scores, f, indent=2)
-    
-                formatted_maxes = ", ".join(f"**{w}**" for w in sorted(max_words))
-                await message.channel.send(f"{chosen_congrats} 💡 The maxes were: {formatted_maxes}")
-                await new_letters_round(message.channel)
-                return
-    
-            # Case 2: Incorrect — check letter validity
-            if not all(guess.count(ch) <= selection.count(ch) for ch in guess):
-                await safe_react(message, "❓")
-                return
-    
-            # Case 3: Guess uses valid letters — now check validity against dictionary
-            if guess in history_invalid:
-                await safe_react(message, "🪦")
-                return
-    
-            # Check validity via API
+        if action == "checkword":
+            guess = data
             user_identifier = urllib.parse.quote("lettersbot")
             url = f"https://focaltools.azurewebsites.net/api/checkword/{guess}?ip={user_identifier}"
-    
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=10) as resp:
-                        data = (await resp.text()).strip().lower()
+                        result = (await resp.text()).strip().lower()
             except Exception:
-                data = "error"
+                result = "error"
     
-            if "true" in data:
-                await safe_react(message, "⬆️")
-            elif "false" in data:
-                await safe_react(message, "❌")
+            if "true" in result:
+                await message.add_reaction("⬆️")
+            elif "false" in result:
+                await message.add_reaction("❌")
             else:
-                await safe_react(message, "⚠️")
+                await message.add_reaction("⚠️")
+            return
+
 
     # Always allow commands to process
     await bot.process_commands(message)
@@ -1214,6 +1204,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
