@@ -865,7 +865,7 @@ async def new_letters_round(channel, max_retries=3):
         await asyncio.sleep(2)  # small delay before retry
 
     await channel.send("❌ Could not generate a valid letters round after several attempts.")
-
+    
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -903,34 +903,29 @@ async def on_message(message):
 
             # ✅ Normalize before evaluation and for display
             normalized_guess = normalize_expression(guess)
-
             # Evaluate the user’s attempt
-            # The function now returns (result, full_expression) or False
-            result_and_expression = parse_numbers_solution(normalized_guess, selection)
-            
-            if result_and_expression is False:
+            result = parse_numbers_solution(normalized_guess, selection)
+            if result is False:
                 return  # ignore invalid attempts
-            
-            # Unpack the successful result and the full expanded expression
-            result, full_expression = result_and_expression # <--- KEY UNPACK
-            
+
             # Ensure per-channel lock exists
             numbers_locks.setdefault(cid, asyncio.Lock())
 
+
             # Capture data for use outside the lock
+
             is_correct = False
             winner_name = None
             winner_id = None
             chosen_congrats = None
-            
-            # Store the fully expanded expression for display
-            chosen_guess = full_expression # <--- KEY DISPLAY VARIABLE
+            chosen_guess = None
 
             async with numbers_locks[cid]:
                 if cid not in current_numbers:
                     return  # already solved
 
                 if result == target:
+
                     is_correct = True
                     winner_id = str(message.author.id)
                     winner_name = message.author.display_name
@@ -941,10 +936,8 @@ async def on_message(message):
                     let_score = existing_data.get("let_score", 0)
 
                     # 🧮 Check for "no large numbers used" condition
-                    # We check the `full_expression` which now only contains original numbers
                     large_numbers = {25, 50, 75, 100}
                     selection_has_large = any(n in large_numbers for n in selection)
-                    used_large = any(str(n) in full_expression for n in large_numbers)
 
                     # Normalize expression before checking which numbers were used
                     used_large = any(str(n) in normalized_guess for n in large_numbers)
@@ -976,7 +969,6 @@ async def on_message(message):
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
 
-                # Use the fully expanded expression for display
                 await message.channel.send(f"{chosen_congrats}\n> `{chosen_guess}` = **{target}**")
                 await new_numbers_round(message.channel)
                 return
@@ -1244,6 +1236,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
