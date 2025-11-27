@@ -1,55 +1,37 @@
+new parser
+
 import ast
 import operator
 import re
+# Assuming numbers_solver.py is importable
+from numbers_solver import solve_numbers 
+from itertools import combinations
 
-# --- Move normalize_expression to top level ---
+# --- Existing normalize_expression (unchanged) ---
 def normalize_expression(expr: str) -> str:
-    """
-    Normalize a math expression to a consistent, parseable form.
-    Handles alternate operators and removes whitespace.
-    """
-    expr = expr.lower()  # case-insensitive
+    # ... (content remains the same)
+    expr = expr.lower()
     replacements = {
-        "p": "+",
-        "+": "+",
-        "−": "-",
-        "-": "-",
-        "x": "*",
-        "×": "*",
-        "*": "*",
-        "÷": "/",
-        "/": "/",
-        "(": "(",
-        "[": "(",
-        "{": "(",
-        ")": ")",
-        "]": ")",
-        "}": ")"
+        "p": "+", "+": "+", "−": "-", "-": "-", "x": "*", "×": "*", "*": "*", 
+        "÷": "/", "/": "/", "(": "(", "[": "(", "{": "(", ")": ")", "]": ")", "}": ")"
     }
     normalized = "".join(replacements.get(ch, ch) for ch in expr)
-    normalized = re.sub(r"\s+", "", normalized)  # remove all spaces
+    normalized = re.sub(r"\s+", "", normalized)
     return normalized
 
 
-def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bool:
+def parse_numbers_solution(guess: str, available_numbers: list[int]) -> tuple[int, str] | bool:
     """
     Validate and evaluate a Numbers game guess safely.
 
-    Rules:
-    1) Only +, -, *, / allowed.
-       Accepts these equivalents:
-         + : +, p, P
-         - : -, −
-         * : *, x, X, ×
-         / : /, ÷
-         brackets : (), {}, []
-    2) All intermediate results must be positive integers.
-    3) Only numbers from the available set may be used, each at most once.
-    4) If invalid, return False. Otherwise return final integer result.
-    5) Ignores all spaces in the input.
+    MODIFIED: Handles composite numbers by recursively using the numbers_solver
+    to find a construction from unused available numbers, and substitutes the
+    composite number with the solver's expression before final evaluation.
+    
+    Returns (final_result, full_expression) on success, or False on failure.
     """
 
-    # Allowed operations mapping
+    # Allowed operations mapping (for safe_eval)
     ops = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
@@ -62,67 +44,137 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> int | bo
 
     def is_positive_integer_value(x):
         return x > 0 and is_integer_value(x)
-
+        
     def safe_eval(node):
+        # This safe_eval is for the final, fully-expanded expression.
+        # It ensures all intermediate steps are positive integers.
         if isinstance(node, ast.Expression):
             return safe_eval(node.body)
-
         elif isinstance(node, ast.BinOp):
-            if type(node.op) not in ops:
-                raise ValueError("Invalid operator.")
+            if type(node.op) not in ops: raise ValueError("Invalid operator.")
             left = safe_eval(node.left)
             right = safe_eval(node.right)
-            if isinstance(node.op, ast.Div) and right == 0:
-                raise ZeroDivisionError
+            if isinstance(node.op, ast.Div) and right == 0: raise ZeroDivisionError
             result = ops[type(node.op)](left, right)
             if not is_positive_integer_value(result):
                 raise ValueError("Intermediate result must be a positive integer value.")
             return result
-
         elif isinstance(node, ast.UnaryOp):
             raise ValueError("Unary operators not allowed.")
-
-        elif isinstance(node, ast.Constant):  # Python 3.8+
-            value = node.value
-            if not is_positive_integer_value(value):
-                raise ValueError("Numbers must be positive integers.")
+        elif isinstance(node, (ast.Constant, ast.Num)):
+            value = node.value if isinstance(node, ast.Constant) else node.n
+            if not isinstance(value, int): raise ValueError("Only integer numbers are allowed.")
+            if not is_positive_integer_value(value): raise ValueError("Numbers must be positive integers.")
             return float(value)
-
-        elif isinstance(node, ast.Num):  # Python < 3.8
-            if not is_positive_integer_value(node.n):
-                raise ValueError("Numbers must be positive integers.")
-            return float(node.n)
-
         else:
-            raise ValueError("Invalid expression component.")
+            raise ValueError(f"Invalid expression component: {type(node).__name__}.")
 
-    # Step 1: normalize input
-    guess = normalize_expression(guess.strip())
+    # --- Step 1: Normalize input ---
+    normalized_guess = normalize_expression(guess.strip())
 
-    # Step 2: extract used numbers
-    used_numbers = [
-        int(n) for n in re.split(r"[+\-*/()]", guess) if n.strip().isdigit()
+    # --- Step 2: Identify and substitute composite numbers ---
+    
+    # Find all standalone numbers (literals) in the normalized expression
+    literal_numbers = [
+        int(n) for n in re.split(r"[+\-*/()]", normalized_guess) if n.strip().isdigit()
     ]
+    
+    temp_available = available_numbers.copy()
+    
+    # Map to store substitutions: { literal_number: (construction_expression, used_numbers_list) }
+    substitutions = {}
+    
+    for n in literal_numbers:
+        # 1. Check if the number is an original available number
+        if n in available_numbers and n in temp_available:
+            try:
+                temp_available.remove(n)
+                substitutions[n] = (str(n), [n])
+            except ValueError:
+                # Should not happen if `n in temp_available` is true, but ensures no double counting
+                return False 
+        
+        # 2. Check if the number is already handled (e.g., appears multiple times)
+        elif n in substitutions:
+             # Already handled/checked; skip
+             continue 
 
-    # Check number count and valid usage
-    if len(used_numbers) > len(available_numbers):
-        return False
-
-    temp_numbers = available_numbers.copy()
-    for n in used_numbers:
-        if n in temp_numbers:
-            temp_numbers.remove(n)
+        # 3. This is a composite number: use the solver to find a valid construction
         else:
-            return False
+            found_construction = None
+            used_by_solver = None
+            
+            # The solver works best when given a subset of numbers.
+            # We must use a subset of `temp_available` to find the solution.
+            
+            # Search for a construction using combinations of the remaining numbers,
+            # starting with 2 and increasing up to the total remaining size.
+            
+            for k in range(2, len(temp_available) + 1):
+                for subset in combinations(temp_available, k):
+                    # Call the full solver on the subset
+                    solver_result = solve_numbers(n, list(subset))
+                    
+                    if solver_result["difference"] == 0:
+                        # Found an exact construction!
+                        # The solver's `expr` is the construction string, e.g., '100 + 50'
+                        construction_expr = solver_result["results"][0][1]
+                        used_by_solver = list(subset)
+                        found_construction = construction_expr
+                        break # Found for this number n
+                if found_construction:
+                    break
 
-    # Step 3: parse and evaluate safely
+            if found_construction:
+                # Successfully found construction. Now update the available numbers pool.
+                for used_n in used_by_solver:
+                    try:
+                        temp_available.remove(used_n)
+                    except ValueError:
+                        # This means the solver returned numbers that were already used elsewhere,
+                        # which shouldn't happen if subsetting was correct, but is a safety check.
+                        return False 
+
+                # Store the substitution using the solver's full expression
+                substitutions[n] = (f"({found_construction})", used_by_solver)
+            else:
+                # Cannot construct this composite number from available set
+                return False
+
+    # --- Step 3: Create the final, fully expanded expression string ---
+    
+    full_expression = normalized_guess
+    
+    # Replace literals with their construction expressions.
+    # Must replace longest numbers first (e.g., 150 before 15)
+    sorted_literals = sorted(substitutions.keys(), key=lambda x: len(str(x)), reverse=True)
+    
+    for literal in sorted_literals:
+        # Use regex to match the whole number only, surrounded by operators/brackets/start/end
+        pattern = r"(?<=[+\-*/()]|^)" + re.escape(str(literal)) + r"(?=[+\-*/()]|$)"
+        replacement_str = substitutions[literal][0]
+        full_expression = re.sub(pattern, replacement_str, full_expression)
+        
+    # --- Step 4: Final evaluation of the expanded expression ---
     try:
-        tree = ast.parse(guess, mode='eval')
-        result = safe_eval(tree)
-    except (SyntaxError, ValueError, ZeroDivisionError):
+        # The solver's expression uses '×' and '/', but AST needs '*' and '/'.
+        # We must normalize the solver's output before parsing.
+        # Since `normalize_expression` is only designed to handle user input, 
+        # let's manually replace the solver's '×' with '*' in the final expression
+        # and re-run the whole normalization for safety.
+        
+        # NOTE: If we modify `numbers_solver.py` to use '*' instead of '×',
+        # this step is unnecessary. Assuming we can't modify the solver file:
+        full_expression_for_eval = normalize_expression(full_expression.replace('×', '*'))
+        
+        tree = ast.parse(full_expression_for_eval, mode='eval')
+        final_result = safe_eval(tree)
+    except (SyntaxError, ValueError, ZeroDivisionError) as e:
+        # print(f"Final Eval Error: {e}") # for debugging
         return False
 
-    if not is_positive_integer_value(result):
+    if not is_positive_integer_value(final_result):
         return False
 
-    return int(round(result))
+    # Return the result AND the readable, fully expanded string
+    return int(round(final_result)), full_expression
