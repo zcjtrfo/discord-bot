@@ -1,5 +1,3 @@
-original parser
-
 import ast
 import operator
 import re
