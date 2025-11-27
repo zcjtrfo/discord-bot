@@ -148,10 +148,22 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> tuple[in
     sorted_literals = sorted(substitutions.keys(), key=lambda x: len(str(x)), reverse=True)
     
     for literal in sorted_literals:
-        # Use regex to match the whole number only, surrounded by operators/brackets/start/end
-        pattern = r"(?<=[+\-*/()]|^)" + re.escape(str(literal)) + r"(?=[+\-*/()]|$)"
         replacement_str = substitutions[literal][0]
-        full_expression = re.sub(pattern, replacement_str, full_expression)
+        
+        # FIX: Use a non-capturing group (?:...) at the start/end
+        # The pattern now matches the boundary character (or start/end of string), 
+        # the literal number, and the closing boundary character (or end of string).
+        # We use re.sub's ability to replace the WHOLE matched pattern.
+        
+        # New pattern: Match number preceded by boundary or start, and followed by boundary or end
+        # Boundary characters are [+\-*/()]
+        pattern = r"([+\-*/()]|^)" + re.escape(str(literal)) + r"([+\-*/()]|$)"
+        
+        # The replacement uses backreferences (\1 and \2) to put the boundary characters back
+        # The middle part (the literal) is replaced by replacement_str.
+        replacement = r"\1" + replacement_str + r"\2"
+        
+        full_expression = re.sub(pattern, replacement, full_expression)
         
     # --- Step 4: Final evaluation of the expanded expression ---
     try:
