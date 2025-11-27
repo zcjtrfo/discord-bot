@@ -150,20 +150,25 @@ def parse_numbers_solution(guess: str, available_numbers: list[int]) -> tuple[in
     for literal in sorted_literals:
         replacement_str = substitutions[literal][0]
         
-        # FIX: Use a non-capturing group (?:...) at the start/end
-        # The pattern now matches the boundary character (or start/end of string), 
-        # the literal number, and the closing boundary character (or end of string).
-        # We use re.sub's ability to replace the WHOLE matched pattern.
-        
-        # New pattern: Match number preceded by boundary or start, and followed by boundary or end
-        # Boundary characters are [+\-*/()]
+        # New pattern (from previous fix, confirmed correct):
+        # Captures leading boundary in group 1, trailing boundary in group 2.
         pattern = r"([+\-*/()]|^)" + re.escape(str(literal)) + r"([+\-*/()]|$)"
         
-        # The replacement uses backreferences (\1 and \2) to put the boundary characters back
-        # The middle part (the literal) is replaced by replacement_str.
-        replacement = r"\1" + replacement_str + r"\2"
+        # FIX: Explicitly define the replacement string using standard group references.
+        # r"\1" and r"\2" are safe, but combining them with `replacement_str` 
+        # (which is a Python string, not a raw string literal) requires careful concatenation.
+        # A simpler, more robust way is to use a lambda function with re.sub.
         
-        full_expression = re.sub(pattern, replacement, full_expression)
+        # We will keep the original pattern and use a lambda function for replacement
+        # to ensure correct back-referencing without string concatenation issues:
+
+        def replacer(m):
+            # m.group(1) is the leading boundary, m.group(2) is the trailing boundary
+            # replacement_str is the expression (e.g., "(100+50)")
+            return m.group(1) + replacement_str + m.group(2)
+
+        # Apply the substitution using the lambda function
+        full_expression = re.sub(pattern, replacer, full_expression)
         
     # --- Step 4: Final evaluation of the expanded expression ---
     try:
