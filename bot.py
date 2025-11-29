@@ -33,6 +33,55 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# --- Custom Emoji Maps (Replace IDs with your actual custom emoji IDs) ---
+
+# 1. Custom Emojis for Letters A-Z
+# *** YOU MUST REPLACE THE PLACEHOLDER IDs WITH YOUR ACTUAL CUSTOM EMOJI IDs ***
+LETTER_EMOJI_MAP = {
+    'A': '<:a_:1443944916039503942>', 'B': '<:b_:1443945023564419123>', 'C': '<:c_:1443945049246138502>',
+    'D': '<:d_:1443945068867092561>', 'E': '<:e_:1443945090220298300>', 'F': '<:f_:1443945112693375117>',
+    'G': '<:g_:1443945137292967936>', 'H': '<:h_:1443945156960325672>', 'I': '<:i_:1443945180024672377>',
+    'J': '<:j_:1443945199784034436>', 'K': '<:k_:1444066307762032772>', 'L': '<:l_:1444066346093772902>',
+    'M': '<:m_:1444066371007942777>', 'N': '<:n_:1444066405728256021>', 'O': '<:o_:1444066434777874654>',
+    'P': '<:p_:1444066465249497271>', 'Q': '<:q_:1444066490033897524>', 'R': '<:r_:1444066521856081951>',
+    'S': '<:s_:1444066546191302708>', 'T': '<:t_:1444066574762770442>', 'U': '<:u_:1444066601656647770>',
+    'V': '<:v_:1444066635723051199>', 'W': '<:w_:1444066667930980443>', 'X': '<:x_:1444066897019797646>',
+    'Y': '<:y_:1444066919496941689>', 'Z': '<:z_:1444066945358893177>',
+}
+
+# 2. Unified Custom Emojis for ALL Numbers (0-10, 25, 50, 75, 100)
+# This map is used for selection numbers (by number) AND target digits (by string/key).
+# *** YOU MUST REPLACE THE PLACEHOLDER IDs WITH YOUR ACTUAL CUSTOM EMOJI IDs ***
+NUMBER_EMOJI_MAP = {
+    # Digits 0-9
+    "0": '<:n_zero:1444443623201574962>',
+    "1": '<:n_one:1444443729091104920>',
+    "2": '<:n_two:1444443674963476622>',
+    "3": '<:n_three:1444443647331537007>',
+    "4": '<:n_four:1444443589957648555>',
+    "5": '<:n_five:1444443560471560353>',
+    "6": '<:n_six:1444443500081971414>',
+    "7": '<:n_seven:1444443532688490556>',
+    "8": '<:n_eight:1444443465030303854>',
+    "9": '<:n_nine:1444443435422453880>',
+    
+    # Selection Numbers (Keys are integers)
+    1: '<:n_one:1444443729091104920>',
+    2: '<:n_two:1444443674963476622>',
+    3: '<:n_three:1444443647331537007>',
+    4: '<:n_four:1444443589957648555>',
+    5: '<:n_five:1444443560471560353>',
+    6: '<:n_six:1444443500081971414>',
+    7: '<:n_seven:1444443532688490556>',
+    8: '<:n_eight:1444443465030303854>',
+    9: '<:n_nine:1444443435422453880>',
+    10: '<:ten:1444239787782574141>',
+    25: "<:twentyfive:1430640762655342602>",
+    50: "<:fifty:1430640824244371617>",
+    75: "<:seventyfive:1430640855173300325>",
+    100: "<:onehundred:1430640895895670901>",
+}
+
 # === Word validity check with historical info ===
 @bot.command(name="check", aliases=["history"])
 async def check_word(ctx, *, term: str):
@@ -353,7 +402,7 @@ async def selection(ctx, *, args: str):
     # *** YOU MUST REPLACE THE PLACEHOLDER IDs WITH YOUR ACTUAL CUSTOM EMOJI IDs ***
     NUMBER_EMOJI_MAP = {
         # Digits 0-9
-        "0": '<:n_zero:1444240017110208653>',
+        "0": '<:n_zero:1444443623201574962>',
         "1": '<:n_one:1444443729091104920>',
         "2": '<:n_two:1444443674963476622>',
         "3": '<:n_three:1444443647331537007>',
@@ -421,7 +470,7 @@ async def selection(ctx, *, args: str):
 
     # Format output
     selection_emojis = " ".join(to_emoji(n) for n in selection)
-    target_emojis = target_to_emojis(target)
+    target_emojis = encode_target_digits(target)
 
     await ctx.send(
         f":dart:--->{target_emojis}<---:dart:\n"
@@ -446,14 +495,26 @@ def scramble(word):
             return s
     return "".join(letters)
 
-def regional_indicator(word):
-    emoji_letters = []
-    for ch in word.lower():
-        if 'a' <= ch <= 'z':
-            emoji_letters.append(f":regional_indicator_{ch}:")
-        else:
-            emoji_letters.append(ch)
-    return " ".join(emoji_letters)
+# def regional_indicator(word):
+#     emoji_letters = []
+#     for ch in word.lower():
+#         if 'a' <= ch <= 'z':
+#             emoji_letters.append(f":regional_indicator_{ch}:")
+#         else:
+#             emoji_letters.append(ch)
+#     return " ".join(emoji_letters)
+
+def encode_letters(text):
+    out = []
+    for ch in text.upper():
+        out.append(LETTER_EMOJI_MAP.get(ch, ch))
+    return " ".join(out)
+
+def encode_number_selection(n):
+    return NUMBER_EMOJI_MAP.get(n, str(n))
+
+def encode_target_digits(n):
+    return " ".join(NUMBER_EMOJI_MAP[d] for d in str(n))
 
 # === Random message pools ===
 CONGRATS_MESSAGES = [
@@ -503,7 +564,7 @@ async def new_puzzle(channel):
     word = random.choice(WORDS)
     scrambled_word = scramble(word)
     current[channel.id] = word
-    scramble_emoji = regional_indicator(scrambled_word)
+    scramble_emoji = encode_letters(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
     formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
     await channel.send(formatted_message)
@@ -736,7 +797,7 @@ async def new_numbers_round(channel):
         """Convert a number to its corresponding emoji string."""
         return emoji_map.get(num, str(num))
 
-    def target_to_emojis(target):
+    def encode_target_digits(target):
         """Convert each digit of the target into emoji numbers (e.g. 527 → :five: :two: :seven:)."""
         digit_map = {
             "0": ":zero:",
@@ -771,8 +832,8 @@ async def new_numbers_round(channel):
                 "solution": solutions["results"][0][1],
             }
 
-            selection_emojis = " ".join(to_emoji(n) for n in selection)
-            target_emojis = target_to_emojis(target)
+            selection_emojis = " ".join(encode_number_selection(n) for n in selection)
+            target_emojis = encode_target_digits(target)
 
             # Dynamic intro text
             if L == 0:
@@ -865,7 +926,7 @@ async def new_letters_round(channel, max_retries=3):
                 "maxes": [w.upper() for w in words],
             }
 
-            emoji_output = " ".join(f":regional_indicator_{ch.lower()}:" for ch in selection_str)
+            emoji_output = encode_letters(selection_str)
             await channel.send(f"Find the longest word from this letters selection:\n>{emoji_output}<")
             return  # success, stop retrying
 
@@ -997,13 +1058,13 @@ async def on_message(message):
     
             if guess.lower() == "hint":
                 answer = current[cid]
-                scrambled_view = regional_indicator(scramble(answer))
+                scrambled_view = encode_letters(scramble(answer))
             
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
                 blanks = " ".join("⏹️" for _ in range(middle_len))
             
-                hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
+                hint_display = f"{encode_letters(first)} {blanks} {encode_letters(last)}"
             
                 await message.channel.send(f"💡 Here's a hint:\n>{scrambled_view}<\n>{hint_display}<")
                 return
@@ -1102,13 +1163,13 @@ async def on_message(message):
                     word = random.choice(maxes)
                     first, last = word[0], word[-1]
                     blanks = " ".join("⏹️" for _ in range(len(word) - 2))
-                    sel_display = regional_indicator(selection)
-                    hint_display = f"{regional_indicator(first)} {blanks} {regional_indicator(last)}"
+                    sel_display = encode_letters(selection)
+                    hint_display = f"{encode_letters(first)} {blanks} {encode_letters(last)}"
                     post_action = ("hint", (sel_display, hint_display))
 
             # print current puzzle
             elif guess.lower() == "print":
-                sel_display = regional_indicator(selection)
+                sel_display = encode_letters(selection)
                 post_action = ("print", sel_display)
     
             # correct
@@ -1252,6 +1313,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
