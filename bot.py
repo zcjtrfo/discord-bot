@@ -795,23 +795,10 @@ async def new_numbers_round(channel):
 
     def to_emoji(num):
         """Convert a number to its corresponding emoji string."""
-        return emoji_map.get(num, str(num))
+        return NUMBER_EMOJI_MAP.get(num, str(num))
 
-    def encode_target_digits(target):
-        """Convert each digit of the target into emoji numbers (e.g. 527 → :five: :two: :seven:)."""
-        digit_map = {
-            "0": ":zero:",
-            "1": ":one:",
-            "2": ":two:",
-            "3": ":three:",
-            "4": ":four:",
-            "5": ":five:",
-            "6": ":six:",
-            "7": ":seven:",
-            "8": ":eight:",
-            "9": ":nine:",
-        }
-        return " ".join(digit_map[d] for d in str(target))
+    def encode_target_digits(n):
+        return " ".join(NUMBER_EMOJI_MAP[d] for d in str(n))
 
     while True:
         L = random.randint(0, 4)
@@ -1313,6 +1300,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
