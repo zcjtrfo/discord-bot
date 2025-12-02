@@ -191,60 +191,116 @@ async def check_word(ctx, *, term: str):
     except Exception as e:
         await ctx.send(f"❌ Unexpected error: `{e}`")
 
-# === Longest word finder ===
 @bot.command(name="maxes", aliases=["max"])
 async def maxes(ctx, *, selection: str):
     """
-    Retrieves the longest possible words from the given selection using the FocalTools API.
-    Usage: !maxes <letters> (supports up to two '*' wildcards)
+    Extended !maxes command:
+    • !maxes <letters>           → longest words (existing behaviour)
+    • !maxes <letters> <n>       → all words of length n using getwords API
     """
 
-    selection = selection.strip().upper()
+    parts = selection.strip().upper().split()
 
-    # ✅ Validate selection (A–Z and up to 2 wildcards)
-    if not re.fullmatch(r"[A-Z\*]+", selection):
+    # -----------------------------------------------------------
+    # CASE A — user supplied letters + target length number
+    # -----------------------------------------------------------
+    if len(parts) == 2 and parts[1].isdigit():
+        letters = parts[0]
+        n = int(parts[1])
+
+        # Validate n
+        if not (1 <= n <= 12):
+            await ctx.send("⚠️ Length number must be between **1** and **12**.")
+            return
+
+        # Validate letters
+        if not re.fullmatch(r"[A-Z\*]+", letters):
+            await ctx.send("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
+            return
+
+        if letters.count('*') > 2:
+            await ctx.send("⚠️ You can use a maximum of two '*' wildcards.")
+            return
+
+        if len(letters) > 12:
+            await ctx.send("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
+            return
+
+        # API endpoint for fixed-length results
+        url = f"https://focaltools.azurewebsites.net/api/getwords/{letters}?ip=c4c"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    response.raise_for_status()
+                    text = await response.text()
+
+            # Extract strings from the XML <string> tags
+            words = re.findall(r"<string>(.*?)</string>", text)
+
+            # Filter to exact length n
+            words = [w.upper() for w in words if len(w) == n]
+
+            if not words:
+                await ctx.send(f"⚠️ No words of length **{n}** found from *{letters}*.")
+                return
+
+            formatted_words = ", ".join(f"**{w}**" for w in sorted(words))
+            await ctx.send(f":arrow_up: Words of length **{n}** from *{letters}*: {formatted_words}")
+
+        except asyncio.TimeoutError:
+            await ctx.send("⏳ Timeout fetching words. Please try again.")
+        except aiohttp.ClientError as e:
+            await ctx.send(f"🌐 Network error contacting FocalTools API: `{e}`")
+        except Exception as e:
+            await ctx.send(f"⚠️ Could not process request — `{e}`")
+
+        return  # Finished CASE A
+
+    # -----------------------------------------------------------
+    # CASE B — original behaviour: "!maxes <letters>"
+    # -----------------------------------------------------------
+
+    letters = selection.strip().upper()
+
+    # Validate letters
+    if not re.fullmatch(r"[A-Z\*]+", letters):
         await ctx.send("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
         return
 
-    if selection.count('*') > 2:
+    if letters.count('*') > 2:
         await ctx.send("⚠️ You can use a maximum of two '*' wildcards.")
         return
 
-    if len(selection) > 12:
+    if len(letters) > 12:
         await ctx.send("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
         return
 
     user_identifier = urllib.parse.quote(ctx.author.name)
-    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection}?ip={user_identifier}"
+    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{letters}?ip={user_identifier}"
 
     try:
-        # --- Async non-blocking request ---
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 response.raise_for_status()
                 text = await response.text()
 
-        # --- Parse JSON safely ---
         words = json.loads(text)
-
         if not words:
-            await ctx.send(f"⚠️ No words found for *{selection}*.")
+            await ctx.send(f"⚠️ No words found for *{letters}*.")
             return
 
         sorted_words = sorted([w.upper() for w in words])
         formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
 
-        await ctx.send(f":arrow_up: Maxes from *{selection}*: {formatted_words}")
+        await ctx.send(f":arrow_up: Maxes from *{letters}*: {formatted_words}")
 
     except asyncio.TimeoutError:
-        await ctx.send(f"⏳ Timeout fetching maxes for *{selection}*. Please try again.")
-
+        await ctx.send(f"⏳ Timeout fetching maxes for *{letters}*. Please try again.")
     except aiohttp.ClientError as e:
         await ctx.send(f"🌐 Network error contacting FocalTools API: `{e}`")
-
     except json.JSONDecodeError:
-        await ctx.send(f"⚠️ Unexpected response format from API for *{selection}*.")
-
+        await ctx.send(f"⚠️ Unexpected JSON from API for *{letters}*.")
     except Exception as e:
         await ctx.send(f"⚠️ Could not process request — `{e}`")
 
@@ -1300,6 +1356,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
