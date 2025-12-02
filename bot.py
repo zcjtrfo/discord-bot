@@ -265,6 +265,7 @@ async def maxes(ctx, *, selection: str):
             formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
 
             await send_limited(f":arrow_up: Words of length **{n}** from *{letters}*: {formatted_words}")
+            return
 
         except asyncio.TimeoutError:
             await send_limited(f"⏳ Timeout fetching words for *{letters}*. Please try again.")
@@ -1383,6 +1384,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
