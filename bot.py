@@ -194,54 +194,54 @@ async def check_word(ctx, *, term: str):
 @bot.command(name="maxes", aliases=["max"])
 async def maxes(ctx, *, selection: str):
     """
-    Extended !maxes command:
-    • !maxes <letters>           → longest words from getmaxes (XML)
-    • !maxes <letters> <n>       → all words of length n from getwords (XML)
+    !maxes <letters>           → returns longest words using getmaxes
+    !maxes <letters> <n>       → returns words of length n using getwords
     """
 
     parts = selection.strip().upper().split()
 
     # -----------------------------------------------------------
-    # PARSE INPUT
+    # Parse input forms
     # -----------------------------------------------------------
     if len(parts) == 2 and parts[1].isdigit():
+        # Case A: letters + number
         letters = parts[0]
-        length_filter = int(parts[1])
-        use_length_filter = True
+        target_length = int(parts[1])
+        use_fixed_length = True
     else:
-        letters = selection.strip().upper()
-        length_filter = None
-        use_length_filter = False
+        # Case B: letters only
+        letters = parts[0]
+        target_length = None
+        use_fixed_length = False
 
     # -----------------------------------------------------------
-    # VALIDATE LETTERS
+    # Validate letters
     # -----------------------------------------------------------
     if not re.fullmatch(r"[A-Z\*]+", letters):
-        await ctx.send("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
+        await ctx.send("⚠️ Letters must be A–Z with up to two '*' wildcards.")
         return
 
     if letters.count('*') > 2:
-        await ctx.send("⚠️ You can use a maximum of two '*' wildcards.")
+        await ctx.send("⚠️ A maximum of two '*' wildcards is allowed.")
         return
 
     if len(letters) > 12:
-        await ctx.send("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
+        await ctx.send("⚠️ The selection cannot exceed 12 characters.")
         return
 
-    # Validate number if present
-    if use_length_filter:
-        if not (1 <= length_filter <= 12):
-            await ctx.send("⚠️ Length number must be between **1** and **12**.")
-            return
+    # Validate n if present
+    if use_fixed_length and not (1 <= target_length <= 12):
+        await ctx.send("⚠️ Length number must be between 1 and 12.")
+        return
 
     # -----------------------------------------------------------
-    # SELECT API ENDPOINT
+    # Select API endpoint
     # -----------------------------------------------------------
-    if use_length_filter:
-        # getwords endpoint
+    if use_fixed_length:
+        # CASE A → getwords
         url = f"https://focaltools.azurewebsites.net/api/getwords/{letters}?ip=c4c"
     else:
-        # getmaxes endpoint
+        # CASE B → getmaxes
         user_identifier = urllib.parse.quote(ctx.author.name)
         url = f"https://focaltools.azurewebsites.net/api/getmaxes/{letters}?ip={user_identifier}"
 
@@ -250,52 +250,52 @@ async def maxes(ctx, *, selection: str):
     # -----------------------------------------------------------
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            async with session.get(url, timeout=10) as response:
                 response.raise_for_status()
-                xml_text = await response.text()
+                xml = await response.text()
 
-        # -------------------------------------------------------
-        # PARSE <string> tags from XML
-        # -------------------------------------------------------
-        words = re.findall(r"<string>(.*?)</string>", xml_text)
+        # Parse <string> elements from XML
+        words = re.findall(r"<string>(.*?)</string>", xml)
         words = [w.upper() for w in words]
 
-        # Apply length filter if needed
-        if use_length_filter:
-            words = [w for w in words if len(w) == length_filter]
-
         if not words:
-            if use_length_filter:
-                await ctx.send(
-                    f"⚠️ No words of length **{length_filter}** found from *{letters}*."
-                )
-            else:
-                await ctx.send(f"⚠️ No words found for *{letters}*.")
+            await ctx.send(f"⚠️ No words found from *{letters}*.")
             return
 
-        # Sort & format output
-        formatted_words = ", ".join(f"**{w}**" for w in sorted(words))
+        # -------------------------------------------------------
+        # Apply filtering (only in Case A)
+        # -------------------------------------------------------
+        if use_fixed_length:
+            # Keep only words of exact length n
+            words = [w for w in words if len(w) == target_length]
+
+            if not words:
+                await ctx.send(
+                    f"⚠️ No words of length **{target_length}** found from *{letters}*."
+                )
+                return
+
+            title = f":arrow_up: Words of length **{target_length}** from *{letters}*:"
+        else:
+            # Case B: getmaxes already returns only the longest words
+            # Just format them
+            title = f":arrow_up: Maxes from *{letters}*:"
 
         # -------------------------------------------------------
-        # SEND RESPONSE
+        # Format & send response
         # -------------------------------------------------------
-        if use_length_filter:
-            await ctx.send(
-                f":arrow_up: Words of length **{length_filter}** from *{letters}*: {formatted_words}"
-            )
-        else:
-            # For maxes, respond similarly but without the length filter
-            # (API returns only longest words)
-            await ctx.send(
-                f":arrow_up: Maxes from *{letters}*: {formatted_words}"
-            )
+        words = sorted(words)
+        formatted = ", ".join(f"**{w}**" for w in words)
+
+        await ctx.send(f"{title} {formatted}")
 
     except asyncio.TimeoutError:
-        await ctx.send("⏳ Timeout fetching words. Please try again.")
+        await ctx.send("⏳ Timeout contacting FocalTools. Try again.")
     except aiohttp.ClientError as e:
-        await ctx.send(f"🌐 Network error contacting FocalTools API: `{e}`")
+        await ctx.send(f"🌐 Network error: `{e}`")
     except Exception as e:
-        await ctx.send(f"⚠️ Could not process request — `{e}`")
+        await ctx.send(f"⚠️ Error: `{e}`")
+
 
 
 
@@ -1350,6 +1350,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
