@@ -1238,6 +1238,20 @@ async def on_message(message):
                     hint_display = f"{encode_letters(first)} {blanks} {encode_letters(last)}"
                     post_action = ("hint", (sel_display, hint_display))
 
+            # shuffle
+            elif guess.lower() == "shuffle":
+                # Convert string to list, shuffle, and join back
+                s_list = list(selection)
+                random.shuffle(s_list)
+                new_selection = "".join(s_list)
+                
+                # Update the state so the shuffle persists for future prints
+                current_letters[cid]["selection"] = new_selection
+                
+                # Reuse the print format
+                sel_display = encode_letters(new_selection)
+                post_action = ("print", sel_display)
+
             # print current puzzle
             elif guess.lower() == "print":
                 sel_display = encode_letters(selection)
@@ -1287,6 +1301,11 @@ async def on_message(message):
         if action == "hint":
             sel_display, hint_display = data
             await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            await bot.process_commands(message)
+            return
+
+        if action == "shuffle":
+            await message.channel.send(f">{data}<")
             await bot.process_commands(message)
             return
 
@@ -1384,6 +1403,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
