@@ -1192,7 +1192,7 @@ async def on_message(message):
                     post_action = ("hint", (sel_display, hint_display))
 
             # shuffle
-            elif guess.lower() == "shuffle":
+            elif guess.lower() in ["shuffle", "swap"]:
                 # Convert string to list, shuffle, and join back
                 s_list = list(selection)
                 random.shuffle(s_list)
@@ -1356,6 +1356,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
