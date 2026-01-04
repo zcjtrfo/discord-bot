@@ -458,108 +458,61 @@ async def solve(ctx, *, input_text: str):
 @bot.command(name="selection")
 async def selection(ctx, *, args: str):
     """
-    Converts a string of letters (A–Z only) into custom letter emojis,
-    or a list of valid Countdown numbers into unified custom number emoji formatting.
-    Usage:
-      • !selection COUNTDOWN
-      • !selection 25 50 3 6 7 10 952
+    Converts letters/numbers to emojis. After 40 seconds, 
+    automatically posts the solution using !maxes or !solve.
     """
+    args_clean = args.strip()
+    is_letters = False
+    is_numbers = False
 
-    # --- Custom Emoji Maps (Replace IDs with your actual custom emoji IDs) ---
-    
-    # 1. Custom Emojis for Letters A-Z
-    # *** YOU MUST REPLACE THE PLACEHOLDER IDs WITH YOUR ACTUAL CUSTOM EMOJI IDs ***
-    LETTER_EMOJI_MAP = {
-        'A': '<:a_:1443944916039503942>', 'B': '<:b_:1443945023564419123>', 'C': '<:c_:1443945049246138502>',
-        'D': '<:d_:1443945068867092561>', 'E': '<:e_:1443945090220298300>', 'F': '<:f_:1443945112693375117>',
-        'G': '<:g_:1443945137292967936>', 'H': '<:h_:1443945156960325672>', 'I': '<:i_:1443945180024672377>',
-        'J': '<:j_:1443945199784034436>', 'K': '<:k_:1444066307762032772>', 'L': '<:l_:1444066346093772902>',
-        'M': '<:m_:1444066371007942777>', 'N': '<:n_:1444066405728256021>', 'O': '<:o_:1444066434777874654>',
-        'P': '<:p_:1444066465249497271>', 'Q': '<:q_:1444066490033897524>', 'R': '<:r_:1444066521856081951>',
-        'S': '<:s_:1444066546191302708>', 'T': '<:t_:1444066574762770442>', 'U': '<:u_:1444066601656647770>',
-        'V': '<:v_:1444066635723051199>', 'W': '<:w_:1444066667930980443>', 'X': '<:x_:1444066897019797646>',
-        'Y': '<:y_:1444066919496941689>', 'Z': '<:z_:1444066945358893177>',
-    }
-
-    # 2. Unified Custom Emojis for ALL Numbers (0-10, 25, 50, 75, 100)
-    # This map is used for selection numbers (by number) AND target digits (by string/key).
-    # *** YOU MUST REPLACE THE PLACEHOLDER IDs WITH YOUR ACTUAL CUSTOM EMOJI IDs ***
-    NUMBER_EMOJI_MAP = {
-        # Digits 0-9
-        "0": '<:n_zero:1444443623201574962>',
-        "1": '<:n_one:1444443729091104920>',
-        "2": '<:n_two:1444443674963476622>',
-        "3": '<:n_three:1444443647331537007>',
-        "4": '<:n_four:1444443589957648555>',
-        "5": '<:n_five:1444443560471560353>',
-        "6": '<:n_six:1444443500081971414>',
-        "7": '<:n_seven:1444443532688490556>',
-        "8": '<:n_eight:1444443465030303854>',
-        "9": '<:n_nine:1444443435422453880>',
-        
-        # Selection Numbers (Keys are integers)
-        1: '<:n_one:1444443729091104920>',
-        2: '<:n_two:1444443674963476622>',
-        3: '<:n_three:1444443647331537007>',
-        4: '<:n_four:1444443589957648555>',
-        5: '<:n_five:1444443560471560353>',
-        6: '<:n_six:1444443500081971414>',
-        7: '<:n_seven:1444443532688490556>',
-        8: '<:n_eight:1444443465030303854>',
-        9: '<:n_nine:1444443435422453880>',
-        10: '<:ten:1444239787782574141>',
-        25: "<:twentyfive:1430640762655342602>",
-        50: "<:fifty:1430640824244371617>",
-        75: "<:seventyfive:1430640855173300325>",
-        100: "<:onehundred:1430640895895670901>",
-    }
-    # ----------------------------------------------------------------------------
-
-    args = args.strip()
-
-    # --- Check if input is letters (uses LETTER_EMOJI_MAP) ---
-    if re.fullmatch(r"[A-Za-z]+", args.replace(" ", "")):
-        letters = args.replace(" ", "").upper()
-        emoji_output = " ".join(LETTER_EMOJI_MAP.get(ch, f"**{ch}**") for ch in letters)
+    # --- 1. Check if input is letters ---
+    if re.fullmatch(r"[A-Za-z]+", args_clean.replace(" ", "")):
+        is_letters = True
+        letters_only = args_clean.replace(" ", "").upper()
+        emoji_output = " ".join(LETTER_EMOJI_MAP.get(ch, f"**{ch}**") for ch in letters_only)
         await ctx.send(f">{emoji_output}<")
-        return
 
-    # --- Check if input is numbers ---
-    try:
-        numbers = [int(x) for x in args.split()]
-    except ValueError:
-        await ctx.send("⚠️ Please provide either letters (A–Z) or numbers separated by spaces.")
-        return
+    # --- 2. Check if input is numbers ---
+    else:
+        try:
+            num_list = [int(x) for x in args_clean.split()]
+            if len(num_list) >= 3:
+                is_numbers = True
+                *selection_nums, target = num_list
+                
+                valid_set = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 25, 50, 75, 100}
+                if not all(n in valid_set for n in selection_nums):
+                    await ctx.send("⚠️ Only valid Countdown numbers allowed in selection.")
+                    return
 
-    if len(numbers) < 3:
-        await ctx.send("⚠️ Please provide at least 3 numbers (e.g. `!selection 25 50 3 6 7 10 952`).")
-        return
+                # Display logic (reversing for visual style as per your snippet)
+                disp_selection = list(reversed(selection_nums))
+                selection_emojis = " ".join(NUMBER_EMOJI_MAP.get(n, str(n)) for n in disp_selection)
+                target_emojis = encode_target_digits(target)
 
-    *selection, target = numbers
-    valid_numbers = {1,2,3,4,5,6,7,8,9,10,25,50,75,100}
+                await ctx.send(
+                    f":dart:--->{target_emojis}<---:dart:\n"
+                    f"|-{selection_emojis}-|"
+                )
+            else:
+                await ctx.send("⚠️ Please provide at least 3 numbers (selection + target).")
+                return
+        except ValueError:
+            await ctx.send("⚠️ Please provide either letters (A–Z) or numbers separated by spaces.")
+            return
 
-    if not all(n in valid_numbers for n in selection):
-        await ctx.send("⚠️ Only numbers from [1,2,3,4,5,6,7,8,9,10,25,50,75,100] are allowed in the selection.")
-        return
+    # --- 3. The 40-Second Delay ---
+    await asyncio.sleep(40)
 
-    selection = list(reversed(selection))
-
-    # Function to get the custom emoji for a selection number (uses unified map with INT keys)
-    def to_emoji(num):
-        return NUMBER_EMOJI_MAP.get(num, str(num))
-
-    # Function to convert target number digits to custom emojis (uses unified map with STRING keys)
-    def target_to_emojis(target_num):
-        return " ".join(NUMBER_EMOJI_MAP.get(d, f"**{d}**") for d in str(target_num))
-
-    # Format output
-    selection_emojis = " ".join(to_emoji(n) for n in selection)
-    target_emojis = encode_target_digits(target)
-
-    await ctx.send(
-        f":dart:--->{target_emojis}<---:dart:\n"
-        f"|-{selection_emojis}-|"
-    )
+    # --- 4. Auto-invoke the solvers ---
+    if is_letters:
+        # We pass the cleaned letters to the existing maxes command
+        # bot.get_command('maxes') finds your @bot.command(name="maxes")
+        await ctx.invoke(bot.get_command('maxes'), selection=args_clean.replace(" ", ""))
+    
+    elif is_numbers:
+        # We pass the original number string to the existing solve command
+        await ctx.invoke(bot.get_command('solve'), input_text=args_clean)
 
 
 # === Load words ===
@@ -1403,6 +1356,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
