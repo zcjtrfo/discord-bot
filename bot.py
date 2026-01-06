@@ -201,7 +201,7 @@ async def maxes(ctx, *, selection: str):
     # 1) Character limit raised to 1800
     async def send_limited(message: str):
         if len(message) > 1800:
-            message = message[:1797] + "..."
+            message = message[:1797] + "**..."
         await ctx.send(message)
 
     parts = selection.strip().upper().split()
@@ -1341,6 +1341,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
