@@ -198,10 +198,10 @@ async def maxes(ctx, *, selection: str):
     Case B: !maxes <letters>      -> getmaxes, JSON only (original behaviour).
     """
 
-    # Helper to truncate any bot message to <= 1000 chars
+    # 1) Character limit raised to 1800
     async def send_limited(message: str):
-        if len(message) > 1000:
-            message = message[:997] + "..."
+        if len(message) > 1800:
+            message = message[:1797] + "..."
         await ctx.send(message)
 
     parts = selection.strip().upper().split()
@@ -213,12 +213,10 @@ async def maxes(ctx, *, selection: str):
         letters = parts[0]
         n = int(parts[1])
 
-        # Validate n
         if not (1 <= n <= 12):
             await send_limited("⚠️ The length number must be between 1 and 12.")
             return
 
-        # Validate letters — IMPORTANT: do NOT complain about the number here.
         if not re.fullmatch(r"[A-Z\*]+", letters):
             await send_limited("⚠️ Letter selection must only contain A–Z and up to two '*' wildcards.")
             return
@@ -231,7 +229,6 @@ async def maxes(ctx, *, selection: str):
             await send_limited("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
             return
 
-        # Use getwords endpoint
         url = f"https://focaltools.azurewebsites.net/api/getwords/{letters}?ip=c4c"
 
         try:
@@ -240,7 +237,6 @@ async def maxes(ctx, *, selection: str):
                     response.raise_for_status()
                     text = await response.text()
 
-            # Try JSON first
             words = None
             try:
                 parsed = json.loads(text)
@@ -249,32 +245,29 @@ async def maxes(ctx, *, selection: str):
             except json.JSONDecodeError:
                 pass
 
-            # Fallback to XML
             if words is None:
                 words = re.findall(r"<string>(.*?)</string>", text)
                 words = [w.upper() for w in words]
 
-            # Filter length
             words = [w for w in words if len(w) == n]
 
             if not words:
-                await send_limited(f"⚠️ No words of length **{n}** found for *{letters}*.")
+                # 2) Replace * with ? for display
+                display_letters = letters.replace('*', '?')
+                await send_limited(f"⚠️ No words of length **{n}** found for *{display_letters}*.")
                 return
 
             sorted_words = sorted(words)
             formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
 
-            await send_limited(f":arrow_up: Words of length **{n}** from *{letters}*: {formatted_words}")
+            # 2) Replace * with ? for display
+            display_letters = letters.replace('*', '?')
+            await send_limited(f":arrow_up: Words of length **{n}** from *{display_letters}*: {formatted_words}")
             return
 
         except asyncio.TimeoutError:
-            await send_limited(f"⏳ Timeout fetching words for *{letters}*. Please try again.")
+            await send_limited(f"⏳ Timeout fetching words for *{letters.replace('*', '?')}*. Please try again.")
             return
-
-        except aiohttp.ClientError as e:
-            await send_limited(f"🌐 Network error contacting FocalTools API: `{e}`")
-            return
-
         except Exception as e:
             await send_limited(f"⚠️ Could not process request — `{e}`")
             return
@@ -284,7 +277,6 @@ async def maxes(ctx, *, selection: str):
     # -----------------------
     selection = selection.strip().upper()
 
-    # Validate selection
     if not re.fullmatch(r"[A-Z\*]+", selection):
         await send_limited("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
         return
@@ -308,24 +300,20 @@ async def maxes(ctx, *, selection: str):
 
         words = json.loads(text)
 
+        # 2) Replace * with ? for display
+        display_selection = selection.replace('*', '?')
+
         if not words:
-            await send_limited(f"⚠️ No words found for *{selection}*.")
+            await send_limited(f"⚠️ No words found for *{display_selection}*.")
             return
 
         sorted_words = sorted([w.upper() for w in words])
         formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
 
-        await send_limited(f":arrow_up: Maxes from *{selection}*: {formatted_words}")
-
-    except asyncio.TimeoutError:
-        await send_limited(f"⏳ Timeout fetching maxes for *{selection}*. Please try again.")
-
-    except aiohttp.ClientError as e:
-        await send_limited(f"🌐 Network error contacting FocalTools API: `{e}`")
+        await send_limited(f":arrow_up: Maxes from *{display_selection}*: {formatted_words}")
 
     except json.JSONDecodeError:
-        await send_limited(f"⚠️ Unexpected response format from API for *{selection}*.")
-
+        await send_limited(f"⚠️ Unexpected response format from API for *{selection.replace('*', '?')}*.")
     except Exception as e:
         await send_limited(f"⚠️ Could not process request — `{e}`")
 
@@ -1356,6 +1344,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
