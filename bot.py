@@ -314,51 +314,6 @@ async def maxes(ctx, *, selection: str):
     except Exception as e:
         await send_limited(f"⚠️ Could not process request — `{e}`")
 
-    # -----------------------
-    # CASE B (original)
-    # -----------------------
-    selection = selection.strip().upper()
-
-    if not re.fullmatch(r"[A-Z\*]+", selection):
-        await send_limited("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
-        return
-
-    if selection.count('*') > 2:
-        await send_limited("⚠️ You can use a maximum of two '*' wildcards.")
-        return
-
-    if len(selection) > 12:
-        await send_limited("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
-        return
-
-    user_identifier = urllib.parse.quote(ctx.author.name)
-    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection}?ip={user_identifier}"
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                response.raise_for_status()
-                text = await response.text()
-
-        words = json.loads(text)
-
-        # 2) Replace * with ? for display
-        display_selection = selection.replace('*', '?')
-
-        if not words:
-            await send_limited(f"⚠️ No words found for *{display_selection}*.")
-            return
-
-        sorted_words = sorted([w.upper() for w in words])
-        formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
-
-        await send_limited(f":arrow_up: Maxes from *{display_selection}*: {formatted_words}")
-
-    except json.JSONDecodeError:
-        await send_limited(f"⚠️ Unexpected response format from API for *{selection.replace('*', '?')}*.")
-    except Exception as e:
-        await send_limited(f"⚠️ Could not process request — `{e}`")
-
 
 
 
@@ -1386,6 +1341,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
