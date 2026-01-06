@@ -250,19 +250,17 @@ async def maxes(ctx, *, selection: str):
                 words = [w.upper() for w in words]
 
             words = [w for w in words if len(w) == n]
+            display_letters = letters.replace('*', '?')
 
             if not words:
-                # 2) Replace * with ? for display
-                display_letters = letters.replace('*', '?')
                 await send_limited(f"⚠️ No words of length **{n}** found for *{display_letters}*.")
                 return
 
+            # Sort and join words, then bold the entire block
             sorted_words = sorted(words)
-            formatted_words = ", ".join(f"**{w}**" for w in sorted_words)
+            formatted_words = ", ".join(sorted_words)
 
-            # 2) Replace * with ? for display
-            display_letters = letters.replace('*', '?')
-            await send_limited(f":arrow_up: Words of length **{n}** from *{display_letters}*: {formatted_words}")
+            await send_limited(f":arrow_up: Words of length **{n}** from *{display_letters}*: **{formatted_words}**")
             return
 
         except asyncio.TimeoutError:
@@ -271,6 +269,50 @@ async def maxes(ctx, *, selection: str):
         except Exception as e:
             await send_limited(f"⚠️ Could not process request — `{e}`")
             return
+
+    # -----------------------
+    # CASE B (original)
+    # -----------------------
+    selection = selection.strip().upper()
+
+    if not re.fullmatch(r"[A-Z\*]+", selection):
+        await send_limited("⚠️ Selection must only contain letters A–Z and up to two '*' wildcards.")
+        return
+
+    if selection.count('*') > 2:
+        await send_limited("⚠️ You can use a maximum of two '*' wildcards.")
+        return
+
+    if len(selection) > 12:
+        await send_limited("⚠️ Selection must contain 12 characters or fewer (including wildcards).")
+        return
+
+    user_identifier = urllib.parse.quote(ctx.author.name)
+    url = f"https://focaltools.azurewebsites.net/api/getmaxes/{selection}?ip={user_identifier}"
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                text = await response.text()
+
+        words = json.loads(text)
+        display_selection = selection.replace('*', '?')
+
+        if not words:
+            await send_limited(f"⚠️ No words found for *{display_selection}*.")
+            return
+
+        # Sort and join words, then bold the entire block
+        sorted_words = sorted([w.upper() for w in words])
+        formatted_words = ", ".join(sorted_words)
+
+        await send_limited(f":arrow_up: Maxes from *{display_selection}*: **{formatted_words}**")
+
+    except json.JSONDecodeError:
+        await send_limited(f"⚠️ Unexpected response format from API for *{selection.replace('*', '?')}*.")
+    except Exception as e:
+        await send_limited(f"⚠️ Could not process request — `{e}`")
 
     # -----------------------
     # CASE B (original)
@@ -1344,6 +1386,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
