@@ -966,7 +966,13 @@ async def on_message(message):
             # User gives up
             if guess.lower() in ["give up", "giveup", "skip", "next"]:
                 sol = current_numbers[cid]["solution"]
-                await message.channel.send(f"💡 A possible solution was: `{sol}`")
+                sel = current_numbers[cid]["selection"]
+                tgt = current_numbers[cid]["target"]
+                selection_param = "-".join(str(n) for n in sel)
+                url = f"https://greem.co.uk/quantumtombola/?sel={urllib.parse.quote(selection_param)}&target={urllib.parse.quote(str(tgt))}"
+                await message.channel.send(
+                    f"💡 A possible solution is: `{sol}`\nSee all solutions in Quantum Tombola:\n<{url}>"
+                )
                 await new_numbers_round(message.channel)
                 return
 
@@ -1341,6 +1347,7 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
 
 
 
