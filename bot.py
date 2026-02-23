@@ -195,23 +195,39 @@ async def check_word(ctx, *, term: str):
 def mark_wildcards(word: str, letters: str) -> str:
     """
     Returns the word with any letters that required a wildcard ('*') wrapped in
-    Discord underline markdown (__x__). Non-wildcard letters are left plain.
+    Discord underline markdown (__xy__). Consecutive wildcard letters are merged
+    into a single __...__ span to avoid broken markdown.
     """
     num_wildcards = letters.count('*')
     if num_wildcards == 0:
         return word
     pool = Counter(c for c in letters if c != '*')
     wildcards_used = 0
-    result = []
+    # Build a list of (char, is_wildcard) tuples
+    tagged = []
     for ch in word:
         if pool[ch] > 0:
             pool[ch] -= 1
-            result.append(ch)
+            tagged.append((ch, False))
         elif wildcards_used < num_wildcards:
             wildcards_used += 1
-            result.append(f"__{ch}__")
+            tagged.append((ch, True))
+        else:
+            tagged.append((ch, False))
+    # Merge consecutive wildcard spans into a single __...__ block
+    result = []
+    i = 0
+    while i < len(tagged):
+        ch, is_wc = tagged[i]
+        if is_wc:
+            span = []
+            while i < len(tagged) and tagged[i][1]:
+                span.append(tagged[i][0])
+                i += 1
+            result.append(f"__{''.join(span)}__")
         else:
             result.append(ch)
+            i += 1
     return "".join(result)
 
 
