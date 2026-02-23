@@ -192,6 +192,26 @@ async def check_word(ctx, *, term: str):
     except Exception as e:
         await ctx.send(f"❌ Unexpected error: `{e}`")
 
+def fit_words(words: list, budget: int) -> str:
+    """
+    Join words with ', ' fitting within budget characters.
+    Appends ', ...' if truncated. Never cuts a word mid-way.
+    """
+    result = []
+    used = 0
+    for i, w in enumerate(words):
+        sep = ", " if result else ""
+        is_last = (i == len(words) - 1)
+        # Reserve room for ', ...' unless this is the last word
+        needed = len(sep) + len(w) + (0 if is_last else len(", ..."))
+        if used + needed <= budget:
+            result.append(w)
+            used += len(sep) + len(w)
+        else:
+            return (", ".join(result) + ", ...") if result else w[:budget]
+    return ", ".join(result)
+
+
 def mark_wildcards(word: str, letters: str) -> str:
     """
     Returns the word with any letters that required a wildcard ('*') wrapped in
@@ -298,9 +318,11 @@ async def maxes(ctx, *, selection: str):
 
             # Sort and join words; mark wildcard letters with underline if wildcards present
             sorted_words = sorted(words)
-            formatted_words = ", ".join(mark_wildcards(w, letters) for w in sorted_words)
-
-            await send_limited(f":arrow_up: Words of length **{n}** from *{display_letters}*: **{formatted_words}**")
+            marked = [mark_wildcards(w, letters) for w in sorted_words]
+            prefix = f":arrow_up: Words of length **{n}** from *{display_letters}*: **"
+            suffix = "**"
+            formatted_words = fit_words(marked, 1800 - len(prefix) - len(suffix))
+            await send_limited(f"{prefix}{formatted_words}{suffix}")
             return
 
         except asyncio.TimeoutError:
@@ -345,9 +367,11 @@ async def maxes(ctx, *, selection: str):
 
         # Sort and join words; mark wildcard letters with underline if wildcards present
         sorted_words = sorted([w.upper() for w in words])
-        formatted_words = ", ".join(mark_wildcards(w, selection) for w in sorted_words)
-
-        await send_limited(f":arrow_up: Maxes from *{display_selection}*: **{formatted_words}**")
+        marked = [mark_wildcards(w, selection) for w in sorted_words]
+        prefix = f":arrow_up: Maxes from *{display_selection}*: **"
+        suffix = "**"
+        formatted_words = fit_words(marked, 1800 - len(prefix) - len(suffix))
+        await send_limited(f"{prefix}{formatted_words}{suffix}")
 
     except json.JSONDecodeError:
         await send_limited(f"⚠️ Unexpected response format from API for *{selection.replace('*', '?')}*.")
