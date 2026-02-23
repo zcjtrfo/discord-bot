@@ -7,6 +7,7 @@ import urllib.parse
 import asyncio
 import datetime
 import xml.etree.ElementTree as ET
+from collections import Counter
 
 import discord
 from discord.ext import commands
@@ -191,6 +192,29 @@ async def check_word(ctx, *, term: str):
     except Exception as e:
         await ctx.send(f"❌ Unexpected error: `{e}`")
 
+def mark_wildcards(word: str, letters: str) -> str:
+    """
+    Returns the word with any letters that required a wildcard ('*') wrapped in
+    Discord underline markdown (__x__). Non-wildcard letters are left plain.
+    """
+    num_wildcards = letters.count('*')
+    if num_wildcards == 0:
+        return word
+    pool = Counter(c for c in letters if c != '*')
+    wildcards_used = 0
+    result = []
+    for ch in word:
+        if pool[ch] > 0:
+            pool[ch] -= 1
+            result.append(ch)
+        elif wildcards_used < num_wildcards:
+            wildcards_used += 1
+            result.append(f"__{ch}__")
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
 @bot.command(name="maxes", aliases=["max"])
 async def maxes(ctx, *, selection: str):
     """
@@ -256,9 +280,9 @@ async def maxes(ctx, *, selection: str):
                 await send_limited(f"⚠️ No words of length **{n}** found for *{display_letters}*.")
                 return
 
-            # Sort and join words, then bold the entire block
+            # Sort and join words; mark wildcard letters with underline if wildcards present
             sorted_words = sorted(words)
-            formatted_words = ", ".join(sorted_words)
+            formatted_words = ", ".join(mark_wildcards(w, letters) for w in sorted_words)
 
             await send_limited(f":arrow_up: Words of length **{n}** from *{display_letters}*: **{formatted_words}**")
             return
@@ -303,9 +327,9 @@ async def maxes(ctx, *, selection: str):
             await send_limited(f"⚠️ No words found for *{display_selection}*.")
             return
 
-        # Sort and join words, then bold the entire block
+        # Sort and join words; mark wildcard letters with underline if wildcards present
         sorted_words = sorted([w.upper() for w in words])
-        formatted_words = ", ".join(sorted_words)
+        formatted_words = ", ".join(mark_wildcards(w, selection) for w in sorted_words)
 
         await send_limited(f":arrow_up: Maxes from *{display_selection}*: **{formatted_words}**")
 
@@ -1347,90 +1371,3 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
