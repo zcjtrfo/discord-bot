@@ -1325,7 +1325,7 @@ async def on_message(message):
         if action == "correct":
             congrats, formatted, winning_word = data
             await message.add_reaction("✅")
-            nine_letter_bonus = " 🚨 :nine:-letter word! 🚨" if len(winning_word) == 9 else ""
+            nine_letter_bonus = " :nine:-letter word! " if len(winning_word) == 9 else ""
             with open(SCORES_FILE, "w", encoding="utf-8") as f:
                 json.dump(scores, f, indent=2)
             await message.channel.send(f"{congrats}{nine_letter_bonus} 💡 The maxes were: {formatted}")
@@ -1412,3 +1412,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
+
