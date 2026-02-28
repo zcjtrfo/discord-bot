@@ -1279,7 +1279,7 @@ async def on_message(message):
                 congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 del current_letters[cid]
-                post_action = ("correct", (congrats, formatted))
+                post_action = ("correct", (congrats, formatted, guess))
     
             # incorrect
             else:
@@ -1323,11 +1323,12 @@ async def on_message(message):
             return
     
         if action == "correct":
-            congrats, formatted = data
+            congrats, formatted, winning_word = data
             await message.add_reaction("✅")
+            nine_letter_bonus = " 🚨 :nine:-letter word! 🚨" if len(winning_word) == 9 else ""
             with open(SCORES_FILE, "w", encoding="utf-8") as f:
                 json.dump(scores, f, indent=2)
-            await message.channel.send(f"{congrats} 💡 The maxes were: {formatted}")
+            await message.channel.send(f"{congrats}{nine_letter_bonus} 💡 The maxes were: {formatted}")
             await new_letters_round(message.channel)
             await bot.process_commands(message)
             return
