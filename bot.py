@@ -631,6 +631,7 @@ SCRAMBLE_MESSAGES = [
 
 # === Active puzzles per channel/thread ===
 current = {} # conundrums
+current_conundrum_display = {}  # tracks current scrambled arrangement for conundrums
 current_numbers = {}  # for the Numbers game
 current_letters = {}  # for the Letters game
 locks = {}              # for conundrum channels
@@ -650,6 +651,7 @@ async def new_puzzle(channel):
     word = random.choice(WORDS)
     scrambled_word = scramble(word)
     current[channel.id] = word
+    current_conundrum_display[channel.id] = scrambled_word
     scramble_emoji = encode_letters(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
     formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
@@ -1149,7 +1151,7 @@ async def on_message(message):
     
             if guess.lower() == "hint":
                 answer = current[cid]
-                scrambled_view = encode_letters(scramble(answer))
+                scrambled_view = encode_letters(current_conundrum_display.get(cid, scramble(answer)))
             
                 first, last = answer[0], answer[-1]
                 middle_len = len(answer) - 2
@@ -1160,16 +1162,25 @@ async def on_message(message):
                 await message.channel.send(f"💡 Here's a hint:\n>{scrambled_view}<\n>{hint_display}<")
                 return
 
+            # shuffle conundrum letters
+            if guess.lower() in ["shuffle", "swap"]:
+                answer = current[cid]
+                new_scramble = scramble(answer)
+                current_conundrum_display[cid] = new_scramble
+                scrambled_view = encode_letters(new_scramble)
+                await message.channel.send(f">{scrambled_view}<")
+                return
+
             # print current puzzle
             if guess.lower() == "print":
-                answer = current[cid]
-                scrambled_view = encode_letters(scramble(answer))
+                scrambled_view = encode_letters(current_conundrum_display.get(cid, scramble(current[cid])))
                 await message.channel.send(f">{scrambled_view}<")
                 return
     
             # 🧩 Handle "give up" or similar
             if guess in ["give up", "giveup", "skip", "next"]:
                 answer = current[cid]
+                current_conundrum_display.pop(cid, None)
                 await message.channel.send(f"💡 The answer is **{answer}**.")
                 await new_puzzle(message.channel)
                 return
@@ -1208,6 +1219,7 @@ async def on_message(message):
                     chosen_congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
                     answer_text = current[cid]
                     del current[cid]
+                    current_conundrum_display.pop(cid, None)
     
             # outside lock: persist + notify + new puzzle
             if is_correct:
