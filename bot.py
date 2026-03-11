@@ -1040,6 +1040,18 @@ async def on_message(message):
                 await new_numbers_round(message.channel)
                 return
 
+            # print current puzzle
+            if guess.lower() == "print":
+                sel = current_numbers[cid]["selection"]
+                tgt = current_numbers[cid]["target"]
+                selection_emojis = " ".join(encode_number_selection(n) for n in sel)
+                target_emojis = " ".join(NUMBER_EMOJI_MAP[d] for d in str(tgt))
+                await message.channel.send(
+                    f":dart:--->{target_emojis}<---:dart:\n"
+                    f"|-{selection_emojis}-|"
+                )
+                return
+
             selection = current_numbers[cid]["selection"]
             target = current_numbers[cid]["target"]
 
@@ -1146,6 +1158,13 @@ async def on_message(message):
                 hint_display = f"{encode_letters(first)} {blanks} {encode_letters(last)}"
             
                 await message.channel.send(f"💡 Here's a hint:\n>{scrambled_view}<\n>{hint_display}<")
+                return
+
+            # print current puzzle
+            if guess.lower() == "print":
+                answer = current[cid]
+                scrambled_view = encode_letters(scramble(answer))
+                await message.channel.send(f">{scrambled_view}<")
                 return
     
             # 🧩 Handle "give up" or similar
@@ -1412,5 +1431,4 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
-
 
