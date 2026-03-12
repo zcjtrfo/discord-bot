@@ -1,4 +1,6 @@
 import os
+os.environ["DISCORD_NO_AUDIO"] = "1"  # must be set before importing discord (Python 3.13+)
+
 import random
 import re
 import json
@@ -16,8 +18,6 @@ import aiohttp
 
 from numbers_solver import solve_numbers
 from parser import parse_numbers_solution, normalize_expression
-
-os.environ["DISCORD_NO_AUDIO"] = "1"
 
 # === Configuration ===
 CONUNDRUM_CHANNEL_ID = 1424500871365918761
