@@ -655,7 +655,14 @@ async def new_puzzle(channel):
     scramble_emoji = encode_letters(scrambled_word)
     msg_template = random.choice(SCRAMBLE_MESSAGES)
     formatted_message = msg_template.format(scrambled=f"\n>{scramble_emoji}<")
-    await channel.send(formatted_message)
+    for attempt in range(3):
+        try:
+            await channel.send(formatted_message)
+            return
+        except discord.errors.DiscordServerError:
+            if attempt < 2:
+                await asyncio.sleep(2 ** attempt)
+    # Puzzle state is already set; users can type 'print' to reveal the scramble
 
 async def safe_react(message, emoji):
     try:
@@ -1226,7 +1233,10 @@ async def on_message(message):
                 with open(SCORES_FILE, "w", encoding="utf-8") as f:
                     json.dump(scores, f, indent=2)
     
-                await message.channel.send(f"{chosen_congrats} The answer is **{answer_text}**")
+                try:
+                    await message.channel.send(f"{chosen_congrats} The answer is **{answer_text}**")
+                except discord.errors.DiscordServerError:
+                    pass  # best-effort; always start the next puzzle
                 await new_puzzle(message.channel)
                 return
 
@@ -1355,11 +1365,14 @@ async def on_message(message):
     
         if action == "correct":
             congrats, formatted, winning_word = data
-            await message.add_reaction("✅")
+            await safe_react(message, "✅")
             nine_letter_bonus = "  :nine:-letter word! " if len(winning_word) == 9 else ""
             with open(SCORES_FILE, "w", encoding="utf-8") as f:
                 json.dump(scores, f, indent=2)
-            await message.channel.send(f"{congrats}{nine_letter_bonus} 💡 The maxes were: {formatted}")
+            try:
+                await message.channel.send(f"{congrats}{nine_letter_bonus} 💡 The maxes were: {formatted}")
+            except discord.errors.DiscordServerError:
+                pass  # best-effort; always start the next round
             await new_letters_round(message.channel)
             await bot.process_commands(message)
             return
