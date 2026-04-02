@@ -752,17 +752,14 @@ async def start_bots(ctx):
         # 🧩 Conundrum Channels
         if ch.id in [CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID]:
             await new_puzzle(ch)
-            await ch.send("🧩 Conundrum quiz started! Reply with your answers below.")
 
         # 🔢 Numbers Channels
         elif ch.id in [NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID]:
             await new_numbers_round(ch)
-            await ch.send("🔢 Numbers quiz started! Solve the target!")
 
         # 🔤 Letters Channels
         elif ch.id in [LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID]:
             await new_letters_round(ch)
-            await ch.send("🔤 Letters quiz started! Type the longest word!")
 
     await ctx.send("✅ All bots (Conundrum, Numbers, Letters) started in all quiz channels.")
 
@@ -790,7 +787,7 @@ async def stop_bots(ctx):
     ]:
         ch = bot.get_channel(ch_id)
         if ch:
-            await ch.send("🛑 Quiz has been temporarily stopped.")
+            await ch.send("🛑 Quiz has been temporarily stopped for maintenance.")
 
     await ctx.send("✅ All bots (Conundrum, Numbers, Letters) stopped across all quiz channels.")
 
@@ -1268,9 +1265,25 @@ async def on_message(message):
             maxes = round_data["maxes"]
     
             guess = message.content.strip().upper()
-    
+
+            # correct — check before keywords so e.g. HINT/PRINT/SKIP can be valid answers
+            if guess in maxes:
+                winner_id = str(message.author.id)
+                winner_name = message.author.display_name
+                existing = scores.get(winner_id, {})
+                scores[winner_id] = {
+                    "name": winner_name,
+                    "con_score": existing.get("con_score", 0),
+                    "num_score": existing.get("num_score", 0),
+                    "let_score": existing.get("let_score", 0) + 1,
+                }
+                congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
+                formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
+                del current_letters[cid]
+                post_action = ("correct", (congrats, formatted, guess))
+
             # give up
-            if guess.lower() in ["give up", "giveup", "skip", "next"]:
+            elif guess.lower() in ["give up", "giveup", "skip", "next"]:
                 formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
                 del current_letters[cid]
                 post_action = ("giveup", formatted)
@@ -1306,22 +1319,6 @@ async def on_message(message):
                 sel_display = encode_letters(selection)
                 post_action = ("print", sel_display)
     
-            # correct
-            elif guess in maxes:
-                winner_id = str(message.author.id)
-                winner_name = message.author.display_name
-                existing = scores.get(winner_id, {})
-                scores[winner_id] = {
-                    "name": winner_name,
-                    "con_score": existing.get("con_score", 0),
-                    "num_score": existing.get("num_score", 0),
-                    "let_score": existing.get("let_score", 0) + 1,
-                }
-                congrats = random.choice(CONGRATS_MESSAGES).format(user=winner_name)
-                formatted = ", ".join(f"**{w}**" for w in sorted(maxes))
-                del current_letters[cid]
-                post_action = ("correct", (congrats, formatted, guess))
-    
             # incorrect
             else:
                 if " " in guess:
@@ -1349,7 +1346,10 @@ async def on_message(message):
     
         if action == "hint":
             sel_display, hint_display = data
-            await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            try:
+                await message.channel.send(f"💡 Here's a hint:\n>{sel_display}<\n>{hint_display}<")
+            except discord.errors.DiscordServerError:
+                pass
             await bot.process_commands(message)
             return
 
@@ -1382,7 +1382,7 @@ async def on_message(message):
             return
     
         if action == "react":
-            await message.add_reaction(data)
+            await safe_react(message, data)
             await bot.process_commands(message)
             return
     
@@ -1398,11 +1398,11 @@ async def on_message(message):
                 result = "error"
     
             if "true" in result:
-                await message.add_reaction("⬆️")
+                await safe_react(message, "⬆️")
             elif "false" in result:
-                await message.add_reaction("❌")
+                await safe_react(message, "❌")
             else:
-                await message.add_reaction("⚠️")
+                await safe_react(message, "⚠️")
     
             await bot.process_commands(message)
             return
@@ -1456,4 +1456,3 @@ if __name__ == "__main__":
     if not token:
         raise SystemExit("Environment variable DISCORD_BOT_TOKEN is missing.")
     bot.run(token)
-
