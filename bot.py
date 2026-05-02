@@ -849,6 +849,56 @@ async def leaderboard(ctx):
 
 
 
+@bot.command(name="total", aliases=["totals", "combined", "overall"])
+async def total_leaderboard(ctx):
+    """Show top 15 players by combined letters + numbers + conundrums score."""
+    all_channel_ids = [
+        CONUNDRUM_CHANNEL_ID, TEST_CONUNDRUMS_CHANNEL_ID,
+        NUMBERS_CHANNEL_ID, TEST_NUMBERS_CHANNEL_ID,
+        LETTERS_CHANNEL_ID, TEST_LETTERS_CHANNEL_ID,
+    ]
+    if ctx.channel.id not in all_channel_ids:
+        await ctx.send("⚠️ This command can only be used in the Conundrum, Numbers, or Letters channels.")
+        return
+
+    if not scores:
+        await ctx.send("No scores yet!")
+        return
+
+    # Build combined totals
+    combined = {
+        uid: (
+            info.get("con_score", 0) + info.get("num_score", 0) + info.get("let_score", 0),
+            info.get("name", "Unknown User"),
+        )
+        for uid, info in scores.items()
+    }
+
+    # Filter out users with zero total
+    combined = {uid: v for uid, v in combined.items() if v[0] > 0}
+
+    if not combined:
+        await ctx.send("No scores yet!")
+        return
+
+    sorted_scores = sorted(combined.items(), key=lambda x: x[1][0], reverse=True)
+
+    msg = "**🏆 Combined Leaderboard (Letters + Numbers + Conundrums)**\n"
+    user_id_str = str(ctx.author.id)
+    user_rank_info = None
+
+    for idx, (uid, (total, name)) in enumerate(sorted_scores, 1):
+        if idx <= 15:
+            msg += f"{idx}. {name}: {total}\n"
+        if str(uid) == user_id_str:
+            user_rank_info = (idx, total)
+
+    if user_rank_info and user_rank_info[0] > 15:
+        msg += f"\n{user_rank_info[0]}. {ctx.author.display_name}: {user_rank_info[1]}"
+
+    await ctx.send(msg)
+
+
 @bot.command(name="dump_scores")
 @commands.has_permissions(manage_messages=True)
 async def dump_scores_file(ctx):
