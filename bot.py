@@ -845,6 +845,9 @@ async def leaderboard(ctx):
     if user_rank_info and user_rank_info[0] > 15:
         msg += f"\n{user_rank_info[0]}. {ctx.author.display_name}: {user_rank_info[1]}"
 
+    total_rounds = sum(info.get(key, 0) for info in scores.values())
+    msg += f"\nTotal rounds solved: {total_rounds}"
+
     await ctx.send(msg)
 
 
@@ -895,6 +898,12 @@ async def total_leaderboard(ctx):
 
     if user_rank_info and user_rank_info[0] > 15:
         msg += f"\n{user_rank_info[0]}. {ctx.author.display_name}: {user_rank_info[1]}"
+
+    total_rounds = sum(
+        info.get("con_score", 0) + info.get("num_score", 0) + info.get("let_score", 0)
+        for info in scores.values()
+    )
+    msg += f"\nTotal rounds solved: {total_rounds}"
 
     await ctx.send(msg)
 
